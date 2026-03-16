@@ -1,0 +1,24 @@
+services:
+  init:
+    image: overv/openstreetmap-tile-server
+    volumes: 
+      - ./data/korea-latest-non-military.osm.pbf:/data/region.osm.pbf
+      - osm-data:/data/database/
+    command: "import"
+  map:
+    image: overv/openstreetmap-tile-server
+    shm_size: "512m"
+    environment:
+        THREADS: "8"
+        OSM2PGSQL_EXTRA_ARGS: "-C 2048"
+    volumes:
+      - osm-data:/data/database/
+      - osm-tiles:/data/tiles/
+    ports:
+      - "8080:80"
+      - "5432:5432"
+    command: "run"
+
+volumes:
+  osm-data:
+  osm-tiles:
