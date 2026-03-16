@@ -362,3 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /TrafficForm/Docker/data
+/TrafficForm/.serena
+/TrafficForm/osm-local/data
+/TrafficForm/osm-local/overpass-db
