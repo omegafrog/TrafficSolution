@@ -7,6 +7,7 @@ namespace TrafficForm.Port
 {
     public interface IPublicTrafficApiPort
     {
-        Task<TrafficResult> GetTrafficResult(HighWay highWay);
+        Task<List<Location>> findAllVdiLoc();
+        Task<List<VdsTrafficResult>> GetTrafficResult(int highwayNo, double minLongitude, double minLatitude, double maxLongitude, double maxLatitude);
     }
 }

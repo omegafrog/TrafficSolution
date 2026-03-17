@@ -2,8 +2,8 @@
 {
     public class HighWay
     {
-        public required Location Location{ get; init; }
-        public required string Id { get; init; }
+        public required string ReferenceNumber { get; init; }
+        public required string Name { get; set; }
        
     }
 }

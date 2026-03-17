@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TrafficForm": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "SERVICE_KEY": "2198b200213546608bb1fb65babe3553"
+      }
+    }
+  }
+}

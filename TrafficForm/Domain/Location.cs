@@ -10,19 +10,7 @@ namespace TrafficForm.Domain
         public double Longitude { get; set; }
         public string Name { get; set; }
 
-        public Location(double latitude, double longitude, string name)
-        {
-            Latitude = latitude;
-            Longitude = longitude;
-            Name = name;
-        }
-
-        public Location(double latitude, double longitude)
-        {
-            Latitude = latitude;
-            Longitude = longitude;
-            Name = string.Empty;
-        }
+        public Location() { }
 
         public override bool Equals(object? obj)
         {

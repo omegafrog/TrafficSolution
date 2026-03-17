@@ -52,7 +52,7 @@ namespace TestProject1
             mockPort
                 //.Setup(p => p.GetAdjacentHighWays(It.IsAny<Location>()))
                 .Setup(p => p.GetAdjacentHighWays(It.Is<Location>(
-                    loc=>loc.Latitude==location1.Latitude&&loc.Longitude==location1.Longitude)))
+                    loc=>loc.Latitude==location1.Latitude&&loc.Longitude==location1.Longitude), p.GetRepository1()))
                 .Callback<Location>(loc => captured = loc)
                 .ReturnsAsync(new List<HighWay> { highway1, highway6 });
             

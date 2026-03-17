@@ -4,7 +4,7 @@ namespace TrafficForm.Port
 {
     public interface IOpenStreetQueryPort
     {
-        public Task<List<HighWay>> GetAdjacentHighWays(Location location);
+        public Task<Dictionary<int, HighWay>> GetAdjacentHighWays(Location location);
         
     }
 }

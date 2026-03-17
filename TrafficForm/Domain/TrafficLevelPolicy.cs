@@ -6,7 +6,7 @@ namespace TrafficForm.Domain
 {
     public static class TrafficLevelPolicy
     {
-        public static void CalculateTrafficLevel(TrafficResult trafficResult)
+        public static void CalculateTrafficLevel(VdsTrafficResult trafficResult)
         {
             throw new NotImplementedException();
         }

@@ -55,9 +55,11 @@
             filterPanel = new FlowLayoutPanel();
             label1 = new Label();
             webView21 = new Microsoft.Web.WebView2.WinForms.WebView2();
+            flowLayoutPanel1 = new FlowLayoutPanel();
             menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)highwaylistContainer).BeginInit();
             highwaylistContainer.Panel1.SuspendLayout();
+            highwaylistContainer.Panel2.SuspendLayout();
             highwaylistContainer.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -226,11 +228,11 @@
             // 
             // highwaylistContainer.Panel2
             // 
+            highwaylistContainer.Panel2.Controls.Add(flowLayoutPanel1);
             highwaylistContainer.Panel2.Paint += splitContainer2_Panel2_Paint;
-            highwaylistContainer.Panel2Collapsed = true;
             highwaylistContainer.Panel2MinSize = 0;
             highwaylistContainer.Size = new Size(1211, 558);
-            highwaylistContainer.SplitterDistance = 1071;
+            highwaylistContainer.SplitterDistance = 947;
             highwaylistContainer.TabIndex = 4;
             // 
             // splitContainer1
@@ -247,8 +249,8 @@
             // splitContainer1.Panel2
             // 
             splitContainer1.Panel2.Controls.Add(webView21);
-            splitContainer1.Size = new Size(1211, 558);
-            splitContainer1.SplitterDistance = 229;
+            splitContainer1.Size = new Size(947, 558);
+            splitContainer1.SplitterDistance = 177;
             splitContainer1.TabIndex = 4;
             // 
             // filterPanel
@@ -257,7 +259,7 @@
             filterPanel.Dock = DockStyle.Fill;
             filterPanel.Location = new Point(0, 0);
             filterPanel.Name = "filterPanel";
-            filterPanel.Size = new Size(229, 558);
+            filterPanel.Size = new Size(177, 558);
             filterPanel.TabIndex = 0;
             // 
             // label1
@@ -279,10 +281,22 @@
             webView21.Dock = DockStyle.Fill;
             webView21.Location = new Point(0, 0);
             webView21.Name = "webView21";
-            webView21.Size = new Size(978, 558);
+            webView21.Size = new Size(766, 558);
             webView21.TabIndex = 0;
             webView21.ZoomFactor = 1D;
             webView21.Click += webView21_Click_1;
+            // 
+            // flowLayoutPanel1
+            // 
+            flowLayoutPanel1.AutoScroll = true;
+            flowLayoutPanel1.BackColor = SystemColors.ControlLightLight;
+            flowLayoutPanel1.Dock = DockStyle.Fill;
+            flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
+            flowLayoutPanel1.Location = new Point(0, 0);
+            flowLayoutPanel1.Name = "flowLayoutPanel1";
+            flowLayoutPanel1.Size = new Size(260, 558);
+            flowLayoutPanel1.TabIndex = 0;
+            flowLayoutPanel1.WrapContents = false;
             // 
             // Form1
             // 
@@ -298,6 +312,7 @@
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
             highwaylistContainer.Panel1.ResumeLayout(false);
+            highwaylistContainer.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)highwaylistContainer).EndInit();
             highwaylistContainer.ResumeLayout(false);
             splitContainer1.Panel1.ResumeLayout(false);
@@ -340,5 +355,6 @@
         private Label label1;
         private ToolStripMenuItem list펴기ToolStripMenuItem;
         private ToolStripMenuItem list접기ToolStripMenuItem;
+        private FlowLayoutPanel flowLayoutPanel1;
     }
 }

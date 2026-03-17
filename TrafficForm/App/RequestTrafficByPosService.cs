@@ -27,25 +27,23 @@ namespace TrafficForm.App
                 throw new PointOutOfRangeException("좌표가 유효범위를 넘었습니다.");
             }
         }
-        public async Task<List<HighWay>> GetAdjacentHighWays(UpdateSelectedPosTrafficInfoCommand command)
+        public async Task<Dictionary<int, List<VdsTrafficResult>>> GetAdjacentHighWays(UpdateSelectedPosTrafficInfoCommand command)
         {
             double adjacentDiff = 5.0;
             try
             {
-                List<HighWay> adjacentHighWays = await openStreetQueryPort.GetAdjacentHighWays(mapper.Invoke(command));
-                adjacentHighWays
-                    .Where(h => Util.DistanceKm(
-                        h.Location.Latitude,
-                        h.Location.Longitude,
-                        command.Latitude,
-                        command.Longitude) <= adjacentDiff)
-                    .ToList();
-
-                if (adjacentHighWays.Count > 5)
+                Dictionary<int, HighWay> adjacentHighWays = await openStreetQueryPort.GetAdjacentHighWays(mapper.Invoke(command));
+                Dictionary<int, List<VdsTrafficResult>> result = new Dictionary<int, List<VdsTrafficResult>>();
+                foreach(var e in adjacentHighWays)
                 {
-                    adjacentHighWays = adjacentHighWays[..5];
+                    List<VdsTrafficResult> res = await GetTrafficResult(e.Key, command);
+                    result.Add(e.Key, [.. res.Select(res =>
+                    {
+                        res.Location.Name = e.Value.Name;
+                        return res;
+                    })]);
                 }
-                return adjacentHighWays;
+                return result;
             }
             catch (Exception ex)
             {
@@ -55,21 +53,30 @@ namespace TrafficForm.App
             
         }
 
-        public async Task<TrafficResult> GetTrafficResult(HighWay highWay)
+        // 줌인한 박스 내부의 highwayNo에 해당하는 vds의 정보를 가져옴. 
+        private async Task<List<VdsTrafficResult>> GetTrafficResult(int highwayNo, UpdateSelectedPosTrafficInfoCommand command)
         {
             try
             {
-                TrafficResult result = await publicTrafficApiPort.GetTrafficResult(highWay);
-                TrafficLevelPolicy.CalculateTrafficLevel(result);
-                return result;
+                List<VdsTrafficResult> result = await publicTrafficApiPort.GetTrafficResult(highwayNo, command.MinLongitude, command.MinLatitude, command.MaxLongitude, command.MaxLatitude);
+
+                List<VdsTrafficResult> filtered = result.Where(e => validateTrafficResult(e)).ToList();
+                return filtered;
             }catch (TrafficResultRequestFailedException ex) {
                 // TODO : 공공 교통량 데이터를 조회에 실패했을 때 롤백 작업이 필요함.
                 throw new NotImplementedException("교통정보를 가져오는데 실패했습니다. 실패 콜백이 필요합니다.", ex);
 
             }
         }
+        static bool validateTrafficResult(VdsTrafficResult e)
+        {
+            return string.IsNullOrEmpty(e.Location.Name)
+                                || DateTime.Parse(e.CollectedDate) >= DateTime.Now.AddDays(1)
+                                || e.Volume < 0
+                                || e.Occupancy < 0;
+        }
 
-        
-        private Func<UpdateSelectedPosTrafficInfoCommand, Location> mapper = (command)=> new Location(command.Latitude, command.Longitude);
+
+        private Func<UpdateSelectedPosTrafficInfoCommand, Location> mapper = (command)=> new Location() { Latitude = command.Latitude, Longitude = command.Longitude };
     }
 }
