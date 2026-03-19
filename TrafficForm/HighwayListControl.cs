@@ -21,9 +21,9 @@ namespace TrafficForm
         public HighwayListControl(VdsTrafficResult result)
         {
             InitializeComponent();
-            tableLayoutPanel1.Controls.Add(new Label() { Text=result.Location.Name}, 0,0);
-            tableLayoutPanel1.Controls.Add(new Label() { Text = result.Speed.ToString() }, 1,0);
-            tableLayoutPanel1.Controls.Add(new Label() { Text = result.Occupancy.ToString() }, 2,0);
+            tableLayoutPanel1.Controls.Add(new Label() { Text = result.Location.Name}, 0,0);
+            tableLayoutPanel1.Controls.Add(new Label() { Text = $"평균 속도:{result.Speed.ToString()}" }, 1,0);
+            tableLayoutPanel1.Controls.Add(new Label() { Text = $"혼잡도:{TrafficLevelPolicy.CalculateTrafficLevel(result).ToDisplayString()}" }, 2,0);
 
         }
 

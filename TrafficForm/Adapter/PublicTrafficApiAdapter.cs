@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using TrafficForm.Domain;
 using TrafficForm.Port;
-using static System.Net.WebRequestMethods;
 
 namespace TrafficForm.Adapter
 {
@@ -35,9 +31,21 @@ namespace TrafficForm.Adapter
                     {
                     string vdsId = item?["vdsId"]?.GetValue<string>() ?? "";
                     string collectedDate = item?["colctedDate"]?.GetValue<string>() ?? "";
-                    double speed = double.Parse(item?["speed"]?.GetValue<string>());
-                    int volume = int.Parse(item?["volume"]?.GetValue<string>() ?? "-1");
-                    double occupacy = double.Parse(item?["occupancy"]?.GetValue<string>() ?? "-1");
+
+                    if (!double.TryParse(item?["speed"]?.GetValue<string>(), out double speed))
+                    {
+                        continue;
+                    }
+
+                    if (!int.TryParse(item?["volume"]?.GetValue<string>(), out int volume))
+                    {
+                        volume = -1;
+                    }
+
+                    if (!double.TryParse(item?["occupancy"]?.GetValue<string>(), out double occupacy))
+                    {
+                        occupacy = -1;
+                    }
 
                     if (string.IsNullOrEmpty(vdsId) || string.IsNullOrEmpty(collectedDate) || speed < 0 || occupacy < 0 || volume < 0)
                     {
@@ -52,7 +60,7 @@ namespace TrafficForm.Adapter
                             Volume = volume,
                             Occupancy = occupacy
                         });
-                    }catch(Exception e)
+                    }catch(Exception)
                 {
                     Console.WriteLine(item);
                 }
@@ -62,19 +70,38 @@ namespace TrafficForm.Adapter
 
             Dictionary<string, Tuple<double, double>> vdsLoc = await _vdsRepository.findVdsIdIn(highwayNo*10, minLatitude, minLongitude, maxLatitude, maxLongitude);
 
-            return result.Where(r =>
+            List<VdsTrafficResult> filteredResults = result.Where(r =>
             {
-                if (vdsLoc.Keys.Contains(r.VdsId))
+                if (vdsLoc.TryGetValue(r.VdsId, out Tuple<double, double>? coordinate))
                 {
                     r.Location = new Location()
                     {
-                        Latitude = vdsLoc[r.VdsId].Item1,
-                        Longitude = vdsLoc[r.VdsId].Item2
+                        Latitude = coordinate.Item1,
+                        Longitude = coordinate.Item2
                     };
                     return true;
                 }
                 return false;
             }).ToList();
+
+            foreach (VdsTrafficResult trafficResult in filteredResults)
+            {
+                trafficResult.TrafficLevel = TrafficLevelPolicy.CalculateTrafficLevel(trafficResult);
+            }
+
+            Dictionary<string, List<Location>> segmentByVdsId = await _vdsRepository.findResponsibilitySegments(
+                highwayNo * 10,
+                filteredResults.Select(result => result.VdsId));
+
+            foreach (VdsTrafficResult trafficResult in filteredResults)
+            {
+                if (segmentByVdsId.TryGetValue(trafficResult.VdsId, out List<Location>? segmentPoints))
+                {
+                    trafficResult.ResponsibilitySegment = segmentPoints;
+                }
+            }
+
+            return filteredResults;
         }
 
         public async Task<List<Location>> findAllVdiLoc()

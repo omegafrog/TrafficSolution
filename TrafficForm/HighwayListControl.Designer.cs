@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             panel1 = new Panel();
+            panel2 = new Panel();
             tableLayoutPanel1 = new TableLayoutPanel();
             pictureBox1 = new PictureBox();
-            panel2 = new Panel();
             panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
@@ -49,19 +49,31 @@
             panel1.TabIndex = 0;
             panel1.Paint += panel1_Paint;
             // 
+            // panel2
+            // 
+            panel2.BackColor = SystemColors.ControlLight;
+            panel2.Dock = DockStyle.Left;
+            panel2.Location = new Point(66, 0);
+            panel2.Name = "panel2";
+            panel2.Size = new Size(5, 82);
+            panel2.TabIndex = 2;
+            panel2.Visible = false;
+            // 
             // tableLayoutPanel1
             // 
             tableLayoutPanel1.ColumnCount = 1;
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel1.Dock = DockStyle.Right;
-            tableLayoutPanel1.Location = new Point(97, 0);
+            tableLayoutPanel1.Dock = DockStyle.Fill;
+            tableLayoutPanel1.Location = new Point(66, 0);
+            tableLayoutPanel1.Margin = new Padding(6, 3, 3, 3);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
+            tableLayoutPanel1.Padding = new Padding(0, 3, 0, 3);
             tableLayoutPanel1.RowCount = 3;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 48.2142868F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 51.7857132F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
-            tableLayoutPanel1.Size = new Size(171, 82);
+            tableLayoutPanel1.Size = new Size(202, 82);
             tableLayoutPanel1.TabIndex = 1;
             // 
             // pictureBox1
@@ -69,19 +81,9 @@
             pictureBox1.Dock = DockStyle.Left;
             pictureBox1.Location = new Point(0, 0);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(91, 82);
+            pictureBox1.Size = new Size(66, 82);
             pictureBox1.TabIndex = 0;
             pictureBox1.TabStop = false;
-            // 
-            // panel2
-            // 
-            panel2.BackColor = SystemColors.ControlLight;
-            panel2.Dock = DockStyle.Left;
-            panel2.Location = new Point(91, 0);
-            panel2.Name = "panel2";
-            panel2.Size = new Size(5, 82);
-            panel2.TabIndex = 2;
-            panel2.Visible = false;
             // 
             // HighwayListControl
             // 

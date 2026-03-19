@@ -1,5 +1,4 @@
 ﻿using Npgsql;
-using System.Text;
 using TrafficForm.App;
 using TrafficForm.Domain;
 
@@ -21,7 +20,6 @@ namespace TrafficForm.Adapter
         {
             await using var conn = await GetConnection();
 
-            StringBuilder builder = new StringBuilder();
             string query = """
                 select v."VDS_ID", vl."X좌표값", vl."Y좌표값"  from vds v
                 left join vds_loc vl 
@@ -49,11 +47,83 @@ namespace TrafficForm.Adapter
             return vdsLoc;
         }
 
+        internal async Task<Dictionary<string, List<Location>>> findResponsibilitySegments(int highwayNo, IEnumerable<string> vdsIds)
+        {
+            string[] targetVdsIds = vdsIds
+                .Where(vdsId => !string.IsNullOrWhiteSpace(vdsId))
+                .Distinct()
+                .ToArray();
+
+            Dictionary<string, List<Location>> segments = new Dictionary<string, List<Location>>();
+            if (targetVdsIds.Length == 0)
+            {
+                return segments;
+            }
+
+            await using var conn = await GetConnection();
+            string query = """
+                WITH target_vds AS (
+                    SELECT DISTINCT ON (v."VDS_ID")
+                        v."VDS_ID",
+                        v."노선번호",
+                        LEAST(v."VDS존시작이정", v."VDS존종료이정") AS start_milepost,
+                        GREATEST(v."VDS존시작이정", v."VDS존종료이정") AS end_milepost
+                    FROM vds v
+                    WHERE v."노선번호" = @highwayNo
+                      AND v."VDS_ID" = ANY(@vdsIds)
+                    ORDER BY v."VDS_ID"
+                )
+                SELECT
+                    tv."VDS_ID",
+                    vl."X좌표값",
+                    vl."Y좌표값",
+                    vl."이정"
+                FROM target_vds tv
+                JOIN vds_loc vl
+                  ON vl."노선번호" = tv."노선번호"
+                 AND vl."이정" >= tv.start_milepost
+                 AND vl."이정" <= tv.end_milepost
+                ORDER BY tv."VDS_ID", vl."이정";
+                """;
+
+            NpgsqlCommand command = new NpgsqlCommand(query, conn);
+            command.Parameters.AddWithValue("highwayNo", highwayNo);
+            command.Parameters.AddWithValue("vdsIds", targetVdsIds);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                string vdsId = reader.GetString(0);
+                double latitude = reader.GetDouble(1);
+                double longitude = reader.GetDouble(2);
+
+                if (!segments.TryGetValue(vdsId, out List<Location>? points))
+                {
+                    points = new List<Location>();
+                    segments[vdsId] = points;
+                }
+
+                bool isDuplicatePoint = points.Count > 0
+                    && points[^1].Latitude.Equals(latitude)
+                    && points[^1].Longitude.Equals(longitude);
+
+                if (!isDuplicatePoint)
+                {
+                    points.Add(new Location
+                    {
+                        Latitude = latitude,
+                        Longitude = longitude
+                    });
+                }
+            }
+
+            return segments;
+        }
+
         internal async Task<List<Location>> findAllVdsLoc()
         {
             await using var conn = await GetConnection();
 
-            StringBuilder builder = new StringBuilder();
             string query = """
                 select v."VDS_ID", vl."X좌표값", vl."Y좌표값"  from vds v
                 left join vds_loc vl 
