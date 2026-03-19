@@ -47,6 +47,7 @@ namespace TrafficForm
             webView21.Dock = DockStyle.Fill;
             splitContainer1.Panel2.Controls.Add(webView21);
             await webView21.EnsureCoreWebView2Async(null);
+            webView21.CoreWebView2.WebMessageReceived -= WebView21_WebMessageReceived;
             webView21.CoreWebView2.WebMessageReceived += WebView21_WebMessageReceived;
 
             //List<Location> locs = await _publicTrafficApi.findAllVdiLoc();
@@ -125,7 +126,8 @@ namespace TrafficForm
               if (text) {
                 marker.bindPopup(text);
               }
-              marker.on('click', function(){
+              marker.on('click', function(e){
+                L.DomEvent.stopPropagation(e);
                 window.chrome.webview.postMessage({
                     type: "{{VDS_MARKER_SELECTED_EVENT_FLAG}}",
                     id: vdsId
@@ -221,8 +223,14 @@ namespace TrafficForm
             webView21.CoreWebView2.ExecuteScriptAsync($"clearMarkers()");
             webView21.CoreWebView2.ExecuteScriptAsync($"clearSegments()");
             List<HighwayListControl> controls = new List<HighwayListControl>();
+            HashSet<string> renderedVdsIds = new HashSet<string>();
             foreach (VdsTrafficResult result in results)
             {
+                if (!renderedVdsIds.Add(result.VdsId))
+                {
+                    continue;
+                }
+
                 HighwayListControl control = new(result){};
                 flowLayoutPanel1.Controls.Add(control);
                 controls.Add(control);
