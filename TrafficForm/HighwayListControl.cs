@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
-using TrafficForm.Domain;
+﻿using TrafficForm.Domain;
 
 namespace TrafficForm
 {
     public partial class HighwayListControl : UserControl
     {
 
-        private bool _highlited;
         public HighwayListControl()
         {
             InitializeComponent();
@@ -53,9 +45,13 @@ namespace TrafficForm
 
         internal void Highlight()
         {
-            _highlited = true;
             panel2.Visible = true;
 
+        }
+
+        internal void ClearHighlight()
+        {
+            panel2.Visible = false;
         }
     }
 }
