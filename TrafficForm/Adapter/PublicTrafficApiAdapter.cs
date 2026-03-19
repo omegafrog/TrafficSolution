@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Nodes;
+using TrafficForm.App;
 using TrafficForm.Domain;
 using TrafficForm.Port;
 
@@ -8,7 +9,6 @@ namespace TrafficForm.Adapter
     {
         private readonly HttpClient _httpClient;
         private readonly string baseUrl = "https://openapi.its.go.kr:9443/vdsInfo";
-        private string? serviceKey = Environment.GetEnvironmentVariable("SERVICE_KEY");
         private readonly VdsRepository _vdsRepository;
 
         public PublicTrafficApiAdapter(HttpClient httpClient, VdsRepository vdsRepository)
@@ -18,8 +18,15 @@ namespace TrafficForm.Adapter
         }
         public async Task<List<VdsTrafficResult>> GetTrafficResult(int highwayNo, double minLongitude, double minLatitude, double maxLongitude, double maxLatitude)
         {
+            string? serviceKey = Environment.GetEnvironmentVariable("SERVICE_KEY");
+            if (string.IsNullOrWhiteSpace(serviceKey))
+            {
+                throw new TrafficResultRequestFailedException("환경변수 'SERVICE_KEY'가 설정되지 않았습니다.");
+            }
+
             List<VdsTrafficResult> result = new List<VdsTrafficResult>();
-            HttpResponseMessage response = await _httpClient.GetAsync(baseUrl + "?apiKey=" + serviceKey + "&getType=json");
+            string requestUri = $"{baseUrl}?apiKey={Uri.EscapeDataString(serviceKey)}&getType=json";
+            HttpResponseMessage response = await _httpClient.GetAsync(requestUri);
             response.EnsureSuccessStatusCode();
             string json = await response.Content.ReadAsStringAsync();
                 
