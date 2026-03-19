@@ -10,7 +10,7 @@ namespace TrafficForm
 {
     public partial class Form1 : Form
     {
-        private readonly RequestTrafficByPosService _requestTrafficByPosService;
+        private readonly RequestTrafficByPosService? _requestTrafficByPosService;
         private readonly Dictionary<string, HighwayListControl> _controlMap = new Dictionary<string, HighwayListControl>();
         private HighwayListControl? _selectedControl;
         private readonly ToolStripStatusLabel _statusMessageLabel = new ToolStripStatusLabel
@@ -37,10 +37,12 @@ namespace TrafficForm
 
         private const string PosSelectedEventFlag = "pos-selected";
         private const string VdsMarkerSelectedEventFlag = "vds-selected";
+        private const string SelectionClearedEventFlag = "selection-cleared";
         private const string DefaultMapModeText = "일반 모드";
         private const string NearbyHighwayLookupModeText = "주변 고속도로 선택 모드";
 
         private bool _isTrafficLookupInProgress;
+        private int _trafficLookupRequestVersion;
         private MapInteractionMode _mapInteractionMode = MapInteractionMode.None;
 
         private enum MapInteractionMode
@@ -54,15 +56,18 @@ namespace TrafficForm
             InitializeComponent();
             InitializeStatusStripUi();
             InitializeMapModeUi();
+            InitializeRightPanelModeUi();
             SetStatusMessage("모드를 선택하세요.", false);
         }
 
-        public Form1(RequestTrafficByPosService requestTrafficByPosService)
+        public Form1(RequestTrafficByPosService requestTrafficByPosService, RequestCctvByPosService requestCctvByPosService)
         {
             InitializeComponent();
             _requestTrafficByPosService = requestTrafficByPosService;
+            _requestCctvByPosService = requestCctvByPosService;
             InitializeStatusStripUi();
             InitializeMapModeUi();
+            InitializeRightPanelModeUi();
             SetStatusMessage("모드를 선택하세요.", false);
             InitializeWebView();
             //list펴기ToolStripMenuItem.Click += (s, e) => ShowHighwayPanel();
@@ -152,11 +157,11 @@ namespace TrafficForm
 
             if (_mapInteractionMode == MapInteractionMode.NearbyHighwayLookup)
             {
-                SetStatusMessage("주변 고속도로 선택 모드입니다. 지도를 클릭하세요.", false);
+                SetStatusMessage($"좌표 선택 모드입니다. {GetCurrentPanelModeDisplayText()}에서 지도를 클릭하세요.", false);
             }
             else
             {
-                SetStatusMessage("일반 모드입니다. 지도 클릭 조회가 비활성화되었습니다.", false);
+                SetStatusMessage($"지도 모드입니다. {GetCurrentPanelModeDisplayText()} 좌표 조회가 비활성화되었습니다.", false);
             }
         }
 
@@ -251,6 +256,9 @@ namespace TrafficForm
 
                 map.on('click', function(e) {
                 if (!isPosSelectionMode) {
+                    window.chrome.webview.postMessage({
+                        type: "{{SelectionClearedEventFlag}}"
+                    });
                     return;
                 }
 
@@ -269,6 +277,25 @@ namespace TrafficForm
                      // 마커저장용
             let custommarkers = [];
             let customsegments = [];
+            let customCctvMarkers = [];
+            let cctvMarkerById = {};
+            let selectedCctvMarkerId = null;
+
+            const defaultCctvMarkerStyle = {
+              radius: 8,
+              color: '#1b5e20',
+              fillColor: '#66bb6a',
+              fillOpacity: 0.95,
+              weight: 2
+            };
+
+            const highlightedCctvMarkerStyle = {
+              radius: 11,
+              color: '#ef6c00',
+              fillColor: '#ffcc80',
+              fillOpacity: 1,
+              weight: 3
+            };
 
             // 기본 마커 추가
             function addMarker(vdsId, lat, lon, text) {
@@ -313,6 +340,61 @@ namespace TrafficForm
               return segment;
             }
 
+            function addCctvMarker(cctvId, lat, lon, text) {
+              const marker = L.circleMarker([lat, lon], defaultCctvMarkerStyle).addTo(map);
+
+              if (text) {
+                marker.bindPopup(text);
+              }
+
+              cctvMarkerById[cctvId] = marker;
+
+              marker.on('click', function(e){
+                L.DomEvent.stopPropagation(e);
+                focusCctvMarker(cctvId, false);
+                window.chrome.webview.postMessage({
+                    type: "{{CctvMarkerSelectedEventFlag}}",
+                    id: cctvId
+                });
+              });
+
+              customCctvMarkers.push(marker);
+              return marker;
+            }
+
+            function focusCctvMarker(cctvId, openPopup) {
+              if (selectedCctvMarkerId && cctvMarkerById[selectedCctvMarkerId]) {
+                cctvMarkerById[selectedCctvMarkerId].setStyle(defaultCctvMarkerStyle);
+              }
+
+              if (!cctvId) {
+                selectedCctvMarkerId = null;
+                return;
+              }
+
+              const marker = cctvMarkerById[cctvId];
+              if (!marker) {
+                selectedCctvMarkerId = null;
+                return;
+              }
+
+              marker.setStyle(highlightedCctvMarkerStyle);
+              marker.bringToFront();
+              if (openPopup && marker.getPopup()) {
+                marker.openPopup();
+              }
+              map.panTo(marker.getLatLng());
+              selectedCctvMarkerId = cctvId;
+            }
+
+            function highlightCctvMarker(cctvId) {
+              focusCctvMarker(cctvId, true);
+            }
+
+            function clearHighlightedCctvMarker() {
+              focusCctvMarker(null, false);
+            }
+
             // 기존 마커 제거
             function clearMarkers() {
               custommarkers.forEach(m => map.removeLayer(m));
@@ -322,6 +404,13 @@ namespace TrafficForm
             function clearSegments() {
               customsegments.forEach(s => map.removeLayer(s));
               customsegments = [];
+            }
+
+            function clearCctvMarkers() {
+              customCctvMarkers.forEach(m => map.removeLayer(m));
+              customCctvMarkers = [];
+              cctvMarkerById = {};
+              selectedCctvMarkerId = null;
             }
 
             // 특정 위치로 이동하면서 마커 추가
@@ -383,10 +472,27 @@ namespace TrafficForm
 
         private async Task ShowHighwayPanel(List<VdsTrafficResult> results)
         {
+            foreach (CctvListControl existingCctvControl in flowLayoutPanel1.Controls.OfType<CctvListControl>())
+            {
+                existingCctvControl.CardClicked -= CctvListControl_CardClicked;
+            }
+
+            detailPanelOpen = true;
+            EnsureRightPanelVisible();
+
+            SelectTrafficControl(null);
+            SelectCctvControl(null);
             flowLayoutPanel1.Controls.Clear();
             _controlMap.Clear();
-            await webView21.CoreWebView2.ExecuteScriptAsync("clearMarkers()");
-            await webView21.CoreWebView2.ExecuteScriptAsync("clearSegments()");
+            _cctvControlMap.Clear();
+
+            if (webView21.CoreWebView2 != null)
+            {
+                await webView21.CoreWebView2.ExecuteScriptAsync("clearMarkers()");
+                await webView21.CoreWebView2.ExecuteScriptAsync("clearSegments()");
+                await webView21.CoreWebView2.ExecuteScriptAsync("clearCctvMarkers()");
+            }
+
             List<HighwayListControl> controls = new List<HighwayListControl>();
             HashSet<string> renderedVdsIds = new HashSet<string>();
             Dictionary<string, int> markerOverlapCountByCoordinate = new Dictionary<string, int>();
@@ -410,11 +516,15 @@ namespace TrafficForm
                     result.Location.Longitude,
                     overlapIndex);
 
-                string markerLatitudeText = markerLatitude.ToString(CultureInfo.InvariantCulture);
-                string markerLongitudeText = markerLongitude.ToString(CultureInfo.InvariantCulture);
-                await webView21.CoreWebView2.ExecuteScriptAsync($"addMarker('{result.VdsId}' ,{markerLatitudeText}, {markerLongitudeText}, '{result.VdsId}')");
+                if (webView21.CoreWebView2 != null)
+                {
+                    string markerLatitudeText = markerLatitude.ToString(CultureInfo.InvariantCulture);
+                    string markerLongitudeText = markerLongitude.ToString(CultureInfo.InvariantCulture);
+                    string markerId = EscapeJavaScriptString(result.VdsId);
+                    await webView21.CoreWebView2.ExecuteScriptAsync($"addMarker('{markerId}' ,{markerLatitudeText}, {markerLongitudeText}, '{markerId}')");
+                }
 
-                if (result.ResponsibilitySegment.Count > 1)
+                if (webView21.CoreWebView2 != null && result.ResponsibilitySegment.Count > 1)
                 {
                     string segmentPointsJson = JsonSerializer.Serialize(result.ResponsibilitySegment.Select(point => new
                     {
@@ -427,15 +537,53 @@ namespace TrafficForm
 
                 _controlMap[result.VdsId] = control;
             }
+
+            highwaylistContainer.PerformLayout();
+            flowLayoutPanel1.PerformLayout();
+            EnsureRightPanelVisible();
+
             foreach (var control in controls)
             {
-                control.Width = flowLayoutPanel1.ClientSize.Width - flowLayoutPanel1.Margin.Horizontal;
+                control.Width = GetRightPanelCardWidth();
             }
 
             //highwaylistContainer.SplitterDistance = highwaylistContainer.Width - detailPanelWidth;
-            detailPanelOpen = true;
-            highwaylistContainer.Panel2Collapsed= false;
-            
+        }
+
+        private int GetRightPanelCardWidth()
+        {
+            int currentWidth = flowLayoutPanel1.ClientSize.Width;
+            int horizontalChrome = flowLayoutPanel1.Margin.Horizontal + flowLayoutPanel1.Padding.Horizontal + 8;
+            int calculatedWidth = currentWidth - horizontalChrome;
+            return Math.Max(140, calculatedWidth);
+        }
+
+        private void EnsureRightPanelVisible()
+        {
+            if (highwaylistContainer.Panel2Collapsed)
+            {
+                highwaylistContainer.Panel2Collapsed = false;
+            }
+
+            int containerWidth = highwaylistContainer.ClientSize.Width;
+            if (containerWidth <= 0)
+            {
+                return;
+            }
+
+            int desiredRightPanelWidth = Math.Max(220, detailPanelWidth);
+            int preferredSplitterDistance = containerWidth - desiredRightPanelWidth - highwaylistContainer.SplitterWidth;
+
+            int minSplitterDistance = Math.Max(120, highwaylistContainer.Panel1MinSize);
+            int maxSplitterDistance = Math.Max(
+                minSplitterDistance,
+                containerWidth - highwaylistContainer.Panel2MinSize - highwaylistContainer.SplitterWidth);
+
+            int boundedSplitterDistance = Math.Min(Math.Max(preferredSplitterDistance, minSplitterDistance), maxSplitterDistance);
+            if (boundedSplitterDistance != highwaylistContainer.SplitterDistance)
+            {
+                highwaylistContainer.SplitterDistance = boundedSplitterDistance;
+            }
         }
 
         private void HideHighwayPanel()
@@ -443,6 +591,8 @@ namespace TrafficForm
             if (!detailPanelOpen) return;
 
             //highwaylistContainer.SplitterDistance = 0;
+            SelectTrafficControl(null);
+            SelectCctvControl(null);
             detailPanelOpen = false;
             highwaylistContainer.Panel2Collapsed = true;
 
@@ -469,16 +619,54 @@ namespace TrafficForm
                     return;
                 }
 
-                if (_isTrafficLookupInProgress)
+                if (_isTrafficLookupInProgress && _rightPanelMode == RightPanelMode.Traffic)
                 {
-                    SetStatusMessage("이미 조회 중입니다. 잠시만 기다려주세요.", true);
+                    SetStatusMessage("이미 혼잡도 조회 중입니다. 잠시만 기다려주세요.", true);
                     return;
                 }
 
-                await UpdateSelectedPosTrafficInfoFromMessage(message);
-            }else if (IsVdsSelectedEvent(message))
+                if (_isCctvLookupInProgress && _rightPanelMode == RightPanelMode.Cctv)
+                {
+                    SetStatusMessage("이미 CCTV 조회 중입니다. 잠시만 기다려주세요.", true);
+                    return;
+                }
+
+                if (_rightPanelMode == RightPanelMode.Cctv)
+                {
+                    await UpdateSelectedPosCctvInfoFromMessage(message);
+                }
+                else
+                {
+                    await UpdateSelectedPosTrafficInfoFromMessage(message);
+                }
+            }
+            else if (IsVdsSelectedEvent(message))
             {
+                if (_rightPanelMode != RightPanelMode.Traffic)
+                {
+                    return;
+                }
+
                 await HighlightSelectedVdsControlFromMessage(message);
+            }
+            else if (IsCctvSelectedEvent(message))
+            {
+                if (_rightPanelMode != RightPanelMode.Cctv)
+                {
+                    return;
+                }
+
+                await HighlightSelectedCctvControlFromMessage(message);
+            }
+            else if (IsSelectionClearedEvent(message))
+            {
+                SelectTrafficControl(null);
+                SelectCctvControl(null);
+
+                if (webView21.CoreWebView2 != null)
+                {
+                    await webView21.CoreWebView2.ExecuteScriptAsync("clearHighlightedCctvMarker()");
+                }
             }
 
         }
@@ -486,9 +674,13 @@ namespace TrafficForm
         private Task HighlightSelectedVdsControlFromMessage(string message)
         {
             string? vdsId = JsonNode.Parse(message)?["id"]?.GetValue<string>();
-            if (vdsId != null && _controlMap.TryGetValue(vdsId, out HighwayListControl? control))
+            if (!string.IsNullOrWhiteSpace(vdsId) && _controlMap.TryGetValue(vdsId, out HighwayListControl? control))
             {
-                control.Highlight();
+                SelectTrafficControl(control);
+            }
+            else
+            {
+                SelectTrafficControl(null);
             }
 
             return Task.CompletedTask;
@@ -528,15 +720,30 @@ namespace TrafficForm
             }
         }
 
+        private bool IsSelectionClearedEvent(string message)
+        {
+            try
+            {
+                string? type = JsonNode.Parse(message)?["type"]?.GetValue<string>();
+                return string.Equals(type, SelectionClearedEventFlag, StringComparison.Ordinal);
+            }
+            catch (Exception exception)
+            {
+                Debug.WriteLine(exception.Message);
+                return false;
+            }
+        }
+
         private async Task UpdateSelectedPosTrafficInfoFromMessage(string message)
         {
-            message = message
-                            .Replace("lat", "Latitude").Replace("lon", "Longitude")
-                            .Replace("minLon", "MinLongitude")
-                            .Replace("minLat", "MinLatitude")
-                            .Replace("maxLon", "MaxLongitude")
-                            .Replace("maxLat", "MaxLatitude");
-            UpdateSelectedPosTrafficInfoCommand? data = System.Text.Json.JsonSerializer.Deserialize<UpdateSelectedPosTrafficInfoCommand>(message);
+            if (_requestTrafficByPosService == null)
+            {
+                SetStatusMessage("혼잡도 조회 서비스가 초기화되지 않았습니다.", false);
+                return;
+            }
+
+            string normalized = NormalizeSelectionMessage(message);
+            UpdateSelectedPosTrafficInfoCommand? data = JsonSerializer.Deserialize<UpdateSelectedPosTrafficInfoCommand>(normalized);
 
             if (data == null)
             {
@@ -544,8 +751,11 @@ namespace TrafficForm
                 return;
             }
 
+            int requestVersion = System.Threading.Interlocked.Increment(ref _trafficLookupRequestVersion);
+
             _isTrafficLookupInProgress = true;
             _mapInteractionModeComboBox.Enabled = false;
+            _rightPanelModeComboBox.Enabled = false;
             SetStatusMessage("좌표를 확인했습니다. 주변 고속도로를 조회 중입니다...", true);
 
             try
@@ -559,8 +769,14 @@ namespace TrafficForm
                     results.AddRange(highWays[highwayId]);
                 }
 
+                if (requestVersion != _trafficLookupRequestVersion || _rightPanelMode != RightPanelMode.Traffic)
+                {
+                    return;
+                }
+
+                CacheLatestTrafficResults(results);
                 SetStatusMessage("지도와 목록을 업데이트하는 중입니다...", true);
-                await ShowHighwayPanel(results);
+                await ShowHighwayPanel(_latestTrafficResults);
                 SetStatusMessage($"조회 완료: {results.Count}건 VDS 정보를 표시했습니다.", false);
             }
             catch (Exception exception)
@@ -572,6 +788,7 @@ namespace TrafficForm
             {
                 _isTrafficLookupInProgress = false;
                 _mapInteractionModeComboBox.Enabled = true;
+                _rightPanelModeComboBox.Enabled = true;
             }
 
         }
