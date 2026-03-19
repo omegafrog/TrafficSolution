@@ -1,5 +1,6 @@
 using Microsoft.Web.WebView2.Core;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TrafficForm.App;
@@ -14,6 +15,11 @@ namespace TrafficForm
         private HighwayListControl? _selectedControl;
         private readonly string POS_SELECTED_EVENT_FLAG = "pos-selected";
         private readonly string VDS_MARKER_SELECTED_EVENT_FLAG = "vds-selected";
+        public Form1()
+        {
+            InitializeComponent();
+            //InitializeWebView();
+        }
         public Form1(RequestTrafficByPosService requestTrafficByPosService)
         {
             InitializeComponent();
@@ -216,14 +222,29 @@ namespace TrafficForm
         private bool detailPanelOpen = false;
         private int detailPanelWidth = 320;
 
-        private void ShowHighwayPanel(List<VdsTrafficResult> results)
+        private static (double Latitude, double Longitude) OffsetOverlappedMarker(double latitude, double longitude, int overlapIndex)
+        {
+            if (overlapIndex <= 0)
+            {
+                return (latitude, longitude);
+            }
+
+            double radius = 0.00012;
+            double angle = (Math.PI / 3.0) * overlapIndex;
+            double adjustedLatitude = latitude + radius * Math.Sin(angle);
+            double adjustedLongitude = longitude + radius * Math.Cos(angle);
+            return (adjustedLatitude, adjustedLongitude);
+        }
+
+        private async Task ShowHighwayPanel(List<VdsTrafficResult> results)
         {
             flowLayoutPanel1.Controls.Clear();
             _controlMap.Clear();
-            webView21.CoreWebView2.ExecuteScriptAsync($"clearMarkers()");
-            webView21.CoreWebView2.ExecuteScriptAsync($"clearSegments()");
+            await webView21.CoreWebView2.ExecuteScriptAsync("clearMarkers()");
+            await webView21.CoreWebView2.ExecuteScriptAsync("clearSegments()");
             List<HighwayListControl> controls = new List<HighwayListControl>();
             HashSet<string> renderedVdsIds = new HashSet<string>();
+            Dictionary<string, int> markerOverlapCountByCoordinate = new Dictionary<string, int>();
             foreach (VdsTrafficResult result in results)
             {
                 if (!renderedVdsIds.Add(result.VdsId))
@@ -234,7 +255,19 @@ namespace TrafficForm
                 HighwayListControl control = new(result){};
                 flowLayoutPanel1.Controls.Add(control);
                 controls.Add(control);
-                webView21.CoreWebView2.ExecuteScriptAsync($"addMarker('{result.VdsId}' ,{result.Location.Latitude}, {result.Location.Longitude}, '{result.VdsId}')");
+
+                string coordinateKey = $"{result.Location.Latitude:F6},{result.Location.Longitude:F6}";
+                markerOverlapCountByCoordinate.TryGetValue(coordinateKey, out int overlapIndex);
+                markerOverlapCountByCoordinate[coordinateKey] = overlapIndex + 1;
+
+                (double markerLatitude, double markerLongitude) = OffsetOverlappedMarker(
+                    result.Location.Latitude,
+                    result.Location.Longitude,
+                    overlapIndex);
+
+                string markerLatitudeText = markerLatitude.ToString(CultureInfo.InvariantCulture);
+                string markerLongitudeText = markerLongitude.ToString(CultureInfo.InvariantCulture);
+                await webView21.CoreWebView2.ExecuteScriptAsync($"addMarker('{result.VdsId}' ,{markerLatitudeText}, {markerLongitudeText}, '{result.VdsId}')");
 
                 if (result.ResponsibilitySegment.Count > 1)
                 {
@@ -244,7 +277,7 @@ namespace TrafficForm
                         longitude = point.Longitude
                     }));
                     string color = TrafficLevelPolicy.GetColorHex(result.TrafficLevel);
-                    webView21.CoreWebView2.ExecuteScriptAsync($"addSegment({segmentPointsJson}, '{color}')");
+                    await webView21.CoreWebView2.ExecuteScriptAsync($"addSegment({segmentPointsJson}, '{color}')");
                 }
 
                 _controlMap[result.VdsId] = control;
@@ -355,7 +388,7 @@ namespace TrafficForm
                 {
                     results.AddRange(highWays[highwayId]);
                 }
-                ShowHighwayPanel(results);
+                await ShowHighwayPanel(results);
 
             }
             else
