@@ -1,11 +1,9 @@
 using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Nodes;
-using TrafficForm.Adapter;
 using TrafficForm.App;
 using TrafficForm.Domain;
-using TrafficForm.Port;
 
 namespace TrafficForm
 {
@@ -118,6 +116,7 @@ namespace TrafficForm
             });
                      // 마커저장용
             let custommarkers = [];
+            let customsegments = [];
 
             // 기본 마커 추가
             function addMarker(vdsId, lat, lon, text) {
@@ -137,10 +136,39 @@ namespace TrafficForm
               return marker;
             }
 
+            function addSegment(points, color) {
+              if (!Array.isArray(points) || points.length < 2) {
+                return null;
+              }
+
+              const latlngs = points
+                .filter(p => p && typeof p.latitude === 'number' && typeof p.longitude === 'number')
+                .map(p => [p.latitude, p.longitude]);
+
+              if (latlngs.length < 2) {
+                return null;
+              }
+
+              const segment = L.polyline(latlngs, {
+                color: color || '#6d6d6d',
+                weight: 7,
+                opacity: 0.9,
+                lineCap: 'round'
+              }).addTo(map);
+
+              customsegments.push(segment);
+              return segment;
+            }
+
             // 기존 마커 제거
             function clearMarkers() {
               custommarkers.forEach(m => map.removeLayer(m));
               custommarkers = [];
+            }
+
+            function clearSegments() {
+              customsegments.forEach(s => map.removeLayer(s));
+              customsegments = [];
             }
 
             // 특정 위치로 이동하면서 마커 추가
@@ -189,7 +217,9 @@ namespace TrafficForm
         private void ShowHighwayPanel(List<VdsTrafficResult> results)
         {
             flowLayoutPanel1.Controls.Clear();
+            _controlMap.Clear();
             webView21.CoreWebView2.ExecuteScriptAsync($"clearMarkers()");
+            webView21.CoreWebView2.ExecuteScriptAsync($"clearSegments()");
             List<HighwayListControl> controls = new List<HighwayListControl>();
             foreach (VdsTrafficResult result in results)
             {
@@ -197,6 +227,18 @@ namespace TrafficForm
                 flowLayoutPanel1.Controls.Add(control);
                 controls.Add(control);
                 webView21.CoreWebView2.ExecuteScriptAsync($"addMarker('{result.VdsId}' ,{result.Location.Latitude}, {result.Location.Longitude}, '{result.VdsId}')");
+
+                if (result.ResponsibilitySegment.Count > 1)
+                {
+                    string segmentPointsJson = JsonSerializer.Serialize(result.ResponsibilitySegment.Select(point => new
+                    {
+                        latitude = point.Latitude,
+                        longitude = point.Longitude
+                    }));
+                    string color = TrafficLevelPolicy.GetColorHex(result.TrafficLevel);
+                    webView21.CoreWebView2.ExecuteScriptAsync($"addSegment({segmentPointsJson}, '{color}')");
+                }
+
                 _controlMap[result.VdsId] = control;
             }
             foreach (var control in controls)
@@ -243,11 +285,15 @@ namespace TrafficForm
 
         }
 
-        private async Task HighlightSelectedVdsControlFromMessage(string message)
+        private Task HighlightSelectedVdsControlFromMessage(string message)
         {
-            var vdsId = JsonNode.Parse(message)?["id"]?.GetValue<string>();
-            _controlMap[vdsId].Highlight();
+            string? vdsId = JsonNode.Parse(message)?["id"]?.GetValue<string>();
+            if (vdsId != null && _controlMap.TryGetValue(vdsId, out HighwayListControl? control))
+            {
+                control.Highlight();
+            }
 
+            return Task.CompletedTask;
         }
 
         private bool IsVdsSelectedEvent(string message)
@@ -292,7 +338,7 @@ namespace TrafficForm
                             .Replace("minLat", "MinLatitude")
                             .Replace("maxLon", "MaxLongitude")
                             .Replace("maxLat", "MaxLatitude");
-            UpdateSelectedPosTrafficInfoCommand data = System.Text.Json.JsonSerializer.Deserialize<UpdateSelectedPosTrafficInfoCommand>(message);
+            UpdateSelectedPosTrafficInfoCommand? data = System.Text.Json.JsonSerializer.Deserialize<UpdateSelectedPosTrafficInfoCommand>(message);
             if (data != null)
             {
                 List<VdsTrafficResult> results = new List<VdsTrafficResult>();
