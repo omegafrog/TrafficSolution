@@ -1,4 +1,4 @@
-﻿namespace TrafficForm
+namespace TrafficForm
 {
     partial class HighwayListControl
     {
@@ -31,59 +31,46 @@
             panel1 = new Panel();
             panel2 = new Panel();
             tableLayoutPanel1 = new TableLayoutPanel();
-            pictureBox1 = new PictureBox();
             panel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
             // 
             // panel1
             // 
-            panel1.BorderStyle = BorderStyle.FixedSingle;
+            panel1.BackColor = Color.White;
             panel1.Controls.Add(panel2);
             panel1.Controls.Add(tableLayoutPanel1);
-            panel1.Controls.Add(pictureBox1);
             panel1.Dock = DockStyle.Fill;
-            panel1.Location = new Point(5, 5);
+            panel1.Location = new Point(6, 6);
             panel1.Name = "panel1";
-            panel1.Size = new Size(270, 84);
+            panel1.Padding = new Padding(0, 2, 0, 2);
+            panel1.Size = new Size(284, 100);
             panel1.TabIndex = 0;
             panel1.Paint += panel1_Paint;
             // 
             // panel2
             // 
-            panel2.BackColor = SystemColors.ControlLight;
+            panel2.BackColor = Color.FromArgb(223, 229, 238);
             panel2.Dock = DockStyle.Left;
-            panel2.Location = new Point(66, 0);
+            panel2.Location = new Point(0, 2);
             panel2.Name = "panel2";
-            panel2.Size = new Size(5, 82);
+            panel2.Size = new Size(8, 96);
             panel2.TabIndex = 2;
-            panel2.Visible = false;
             // 
             // tableLayoutPanel1
             // 
             tableLayoutPanel1.ColumnCount = 1;
-            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Dock = DockStyle.Fill;
-            tableLayoutPanel1.Location = new Point(66, 0);
-            tableLayoutPanel1.Margin = new Padding(6, 3, 3, 3);
+            tableLayoutPanel1.Location = new Point(8, 2);
+            tableLayoutPanel1.Margin = new Padding(0);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
-            tableLayoutPanel1.Padding = new Padding(0, 3, 0, 3);
+            tableLayoutPanel1.Padding = new Padding(12, 10, 10, 8);
             tableLayoutPanel1.RowCount = 3;
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 48.2142868F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 51.7857132F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
-            tableLayoutPanel1.Size = new Size(202, 82);
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
+            tableLayoutPanel1.Size = new Size(276, 96);
             tableLayoutPanel1.TabIndex = 1;
-            // 
-            // pictureBox1
-            // 
-            pictureBox1.Dock = DockStyle.Left;
-            pictureBox1.Location = new Point(0, 0);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(66, 82);
-            pictureBox1.TabIndex = 0;
-            pictureBox1.TabStop = false;
             // 
             // HighwayListControl
             // 
@@ -91,17 +78,15 @@
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(panel1);
             Name = "HighwayListControl";
-            Padding = new Padding(5);
-            Size = new Size(280, 94);
+            Padding = new Padding(6);
+            Size = new Size(296, 112);
             panel1.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ResumeLayout(false);
         }
 
         #endregion
 
         private Panel panel1;
-        private PictureBox pictureBox1;
         private TableLayoutPanel tableLayoutPanel1;
         private Panel panel2;
     }
