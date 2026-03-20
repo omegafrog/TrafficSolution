@@ -311,7 +311,7 @@ namespace TrafficForm
             }
 
             HashSet<string> renderedCctvIds = new HashSet<string>(StringComparer.Ordinal);
-            List<CctvListControl> controls = new List<CctvListControl>();
+            flowLayoutPanel1.SuspendLayout();
 
             foreach (CctvInfo result in results)
             {
@@ -324,7 +324,6 @@ namespace TrafficForm
                 control.CardClicked += CctvListControl_CardClicked;
 
                 flowLayoutPanel1.Controls.Add(control);
-                controls.Add(control);
                 _cctvControlMap[result.CctvId] = control;
 
                 if (webView21.CoreWebView2 != null)
@@ -338,13 +337,10 @@ namespace TrafficForm
             }
 
             highwaylistContainer.PerformLayout();
+            flowLayoutPanel1.ResumeLayout();
             flowLayoutPanel1.PerformLayout();
             EnsureRightPanelVisible();
-
-            foreach (CctvListControl control in controls)
-            {
-                control.Width = GetRightPanelCardWidth();
-            }
+            ResizeRightPanelCards();
         }
 
         private async Task HighlightSelectedCctvControlFromMessage(string message)

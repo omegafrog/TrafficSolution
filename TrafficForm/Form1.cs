@@ -160,6 +160,9 @@ namespace TrafficForm
             flowLayoutPanel1.SizeChanged -= FlowLayoutPanel1_SizeChanged;
             flowLayoutPanel1.SizeChanged += FlowLayoutPanel1_SizeChanged;
 
+            highwaylistContainer.SplitterMoved -= HighwaylistContainer_SplitterMoved;
+            highwaylistContainer.SplitterMoved += HighwaylistContainer_SplitterMoved;
+
             _searchSummaryPanel.BackColor = Color.FromArgb(227, 236, 250);
             _searchSummaryPanel.BorderStyle = BorderStyle.FixedSingle;
             _searchSummaryPanel.Dock = DockStyle.Top;
@@ -532,7 +535,7 @@ namespace TrafficForm
 
         private void FlowLayoutPanel1_SizeChanged(object? sender, EventArgs e)
         {
-            ResizeHighwayCards();
+            ResizeRightPanelCards();
             _searchSummaryDetailLabel.Width = Math.Max(180, highwaylistContainer.Panel2.Width - 22);
         }
 
@@ -549,23 +552,21 @@ namespace TrafficForm
             _searchSummaryDetailLabel.Text = $"조회 {totalCount:N0}건, 목록 표시 {displayedCount:N0}건";
         }
 
-        private void ResizeHighwayCards()
+        private void ResizeRightPanelCards()
         {
             if (flowLayoutPanel1.Controls.Count == 0)
             {
                 return;
             }
 
-            int verticalScrollbarWidth = flowLayoutPanel1.VerticalScroll.Visible
-                ? SystemInformation.VerticalScrollBarWidth
-                : 0;
-            int targetWidth = Math.Max(
-                236,
-                flowLayoutPanel1.ClientSize.Width - flowLayoutPanel1.Padding.Horizontal - verticalScrollbarWidth - 4);
+            int targetWidth = CalculateRightPanelCardWidth();
 
-            foreach (HighwayListControl control in flowLayoutPanel1.Controls.OfType<HighwayListControl>())
+            foreach (Control control in flowLayoutPanel1.Controls)
             {
-                control.Width = targetWidth;
+                if (control is HighwayListControl || control is CctvListControl)
+                {
+                    control.Width = targetWidth;
+                }
             }
         }
 
@@ -643,7 +644,6 @@ namespace TrafficForm
                 await webView21.CoreWebView2.ExecuteScriptAsync("clearCctvMarkers()");
             }
 
-            List<HighwayListControl> controls = new List<HighwayListControl>();
             HashSet<string> renderedVdsIds = new HashSet<string>();
             Dictionary<string, int> markerOverlapCountByCoordinate = new Dictionary<string, int>();
 
@@ -658,7 +658,6 @@ namespace TrafficForm
 
                 HighwayListControl control = new(result){};
                 flowLayoutPanel1.Controls.Add(control);
-                controls.Add(control);
 
                 string coordinateKey = $"{result.Location.Latitude:F6},{result.Location.Longitude:F6}";
                 markerOverlapCountByCoordinate.TryGetValue(coordinateKey, out int overlapIndex);
@@ -696,30 +695,38 @@ namespace TrafficForm
             flowLayoutPanel1.ResumeLayout();
             flowLayoutPanel1.PerformLayout();
 
-            foreach (var control in controls)
-            {
-                control.Width = GetRightPanelCardWidth();
-            }
-
-            ResizeHighwayCards();
-            UpdateSearchSummary(results.Count, controls.Count);
+            ResizeRightPanelCards();
+            UpdateSearchSummary(results.Count, _controlMap.Count);
 
             //highwaylistContainer.SplitterDistance = highwaylistContainer.Width - detailPanelWidth;
         }
 
-        private int GetRightPanelCardWidth()
+        private int CalculateRightPanelCardWidth()
         {
-            int currentWidth = flowLayoutPanel1.ClientSize.Width;
-            int horizontalChrome = flowLayoutPanel1.Margin.Horizontal + flowLayoutPanel1.Padding.Horizontal + 8;
-            int calculatedWidth = currentWidth - horizontalChrome;
-            return Math.Max(140, calculatedWidth);
+            int verticalScrollbarWidth = flowLayoutPanel1.VerticalScroll.Visible
+                ? SystemInformation.VerticalScrollBarWidth
+                : 0;
+
+            int calculatedWidth = flowLayoutPanel1.ClientSize.Width
+                - flowLayoutPanel1.Padding.Horizontal
+                - verticalScrollbarWidth
+                - 4;
+
+            return Math.Max(236, calculatedWidth);
         }
 
         private void EnsureRightPanelVisible()
         {
-            if (highwaylistContainer.Panel2Collapsed)
+            bool wasCollapsed = highwaylistContainer.Panel2Collapsed;
+
+            if (wasCollapsed)
             {
                 highwaylistContainer.Panel2Collapsed = false;
+            }
+            else if (highwaylistContainer.Panel2.Width > 0)
+            {
+                detailPanelWidth = Math.Max(220, highwaylistContainer.Panel2.Width);
+                return;
             }
 
             int containerWidth = highwaylistContainer.ClientSize.Width;
@@ -740,6 +747,19 @@ namespace TrafficForm
             if (boundedSplitterDistance != highwaylistContainer.SplitterDistance)
             {
                 highwaylistContainer.SplitterDistance = boundedSplitterDistance;
+            }
+
+            if (highwaylistContainer.Panel2.Width > 0)
+            {
+                detailPanelWidth = Math.Max(220, highwaylistContainer.Panel2.Width);
+            }
+        }
+
+        private void HighwaylistContainer_SplitterMoved(object? sender, SplitterEventArgs e)
+        {
+            if (!highwaylistContainer.Panel2Collapsed && highwaylistContainer.Panel2.Width > 0)
+            {
+                detailPanelWidth = Math.Max(220, highwaylistContainer.Panel2.Width);
             }
         }
 
