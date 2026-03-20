@@ -1,12 +1,12 @@
 # TrafficSolution
 
-공공데이터 API와 OpenStreetMap 기반 로컬 타일 서버를 결합해, 지도에서 선택한 좌표 주변의 고속도로 혼잡도(VDS)와 CCTV 정보를 조회하는 .NET 10 WinForms 애플리케이션입니다.
+공공데이터 API와 OpenStreetMap 기반 로컬 타일 서버를 결합해, 지도에서 선택한 좌표 기준으로 고속도로 혼잡도(VDS)와 CCTV 정보를 조회하는 .NET 10 WinForms 애플리케이션입니다.
 
 ## 핵심 목표
 
 - 지도 중심의 교통 운영 뷰를 제공한다.
 - 좌표 기반으로 주변 고속도로를 식별하고 VDS 혼잡도를 시각화한다.
-- 동일한 좌표 흐름에서 CCTV 조회/재생까지 연결한다.
+- 동일한 좌표 흐름에서 최근접 고속도로 기반 CCTV 조회/재생까지 연결한다.
 
 ## 아키텍처 개요
 
@@ -117,7 +117,7 @@ TrafficSolution/
 
 - Command: 서비스 입력(예: `UpdateSelectedPosTrafficInfoCommand`)
 - Event: 상태 전이/중간 결과(예: 좌표 선택됨, 고속도로 식별됨, 조회 완료됨)
-- Policy: 도메인 규칙(예: 좌표 범위 검증, 혼잡도 레벨 계산, CCTV 근접 필터링)
+- Policy: 도메인 규칙(예: 좌표 범위 검증, 혼잡도 레벨 계산, CCTV 1km + 고속도로명 유사 필터링)
 
 ## 유스케이스 정의 (클라이언트 관점)
 
@@ -131,7 +131,7 @@ TrafficSolution/
 | UC-TRF-001 | 지도에서 좌표를 클릭해 혼잡도를 조회한다 | 인접 고속도로를 찾고, bounds 내 VDS 혼잡도를 수집해 카드/마커를 생성한다 | 우측 카드와 지도 마커/구간이 함께 표시된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/App/RequestTrafficByPosService.cs`, `TrafficForm/Adapter/OpenStreetDbRepository.cs`, `TrafficForm/Adapter/PublicTrafficApiAdapter.cs` |
 | UC-TRF-002 | 지도의 VDS 마커를 클릭한다 | 해당 카드로 스크롤하고 하이라이트를 동기화한다 | 지도 선택과 우측 카드 선택 상태가 일치한다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/HighwayListControl.cs` |
 | UC-TRF-003 | 조회된 도로 구간 혼잡도를 확인한다 | VDS 책임 구간을 혼잡도 레벨 색상으로 지도에 그린다 | 구간 색이 레벨(원활/보통/혼잡/정체)에 맞게 표시된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/Domain/TrafficLevelPolicy.cs`, `TrafficForm/Adapter/VdsRepository.cs` |
-| UC-CTV-001 | CCTV 모드에서 좌표를 클릭한다 | 인접 고속도로 중 가장 가까운 노선을 선택하고 CCTV를 필터링해 표시한다 | 선택 고속도로 기준 CCTV 카드/마커가 표시된다 | `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/App/RequestCctvByPosService.cs`, `TrafficForm/Adapter/CctvApiAdapter.cs` |
+| UC-CTV-001 | CCTV 모드에서 좌표를 클릭한다 | 선택 좌표 기준 최근접 고속도로를 선택하고, 해당 고속도로 반경 1km 이내 + 고속도로명 유사 조건으로 CCTV를 필터링해 표시한다 | 선택 고속도로 기준 CCTV 카드/마커가 표시된다 | `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/App/RequestCctvByPosService.cs`, `TrafficForm/Adapter/CctvApiAdapter.cs` |
 | UC-CTV-002 | 지도의 CCTV 마커 또는 CCTV 카드를 선택한다 | 카드/마커 하이라이트와 지도 포커스를 동기화한다 | 선택한 CCTV가 지도와 카드에서 동시에 강조된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/UI/CctvListControl.cs` |
 | UC-CTV-003 | CCTV 카드를 눌러 영상을 재생한다 | URL 검증 후 팝업 플레이어를 열고, 중복 재생 창을 방지한다 | CCTV 팝업이 열리고 종료 후 상태 메시지가 갱신된다 | `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/UI/CctvPlayerPopupForm.cs` |
 | UC-OPS-001 | 조회 중 같은 동작을 반복 클릭한다 | 중복 요청을 차단하고 최신 요청 버전만 반영한다 | 이전 응답이 늦게 와도 최신 결과만 화면에 남는다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs` |

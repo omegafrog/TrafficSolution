@@ -321,8 +321,8 @@ end
 ### 1) 클라이언트 기준 상세 설명
 
 - 사용자는 좌측에서 우측 패널 모드를 `CCTV 모드`로 전환한다.
-- 지도 클릭 시 선택 좌표 주변 고속도로 중 가장 근접한 고속도로를 고르고 CCTV를 조회한다.
-- 필터링된 CCTV 목록이 우측 카드와 지도 CCTV 마커로 표시된다.
+- 지도 클릭 시 선택 좌표 기준으로 가장 가까운 고속도로를 고르고 CCTV 후보를 조회한다.
+- 조회된 CCTV 후보는 선택 고속도로 반경 1km 이내 + 고속도로명 유사 조건으로 필터링되어 우측 카드와 지도 CCTV 마커로 표시된다.
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
@@ -354,7 +354,7 @@ CctvApiPort -> CctvApi : cctvInfo API 호출
 CctvApi --> CctvApiPort : CCTV 후보 목록
 CctvApiPort --> CctvSvc
 
-CctvSvc -> CctvSvc : 근접 고속도로 기준 필터링
+CctvSvc -> CctvSvc : 선택 고속도로 반경 1km + 고속도로명 유사 필터링
 CctvSvc --> Form1 : HighwayCctvSelection
 Form1 -> Form1 : CCTV 카드/마커 렌더링
 @enduml
@@ -379,7 +379,7 @@ else CCTV 모드
   Form1 -> CctvSvc : GetNearbyHighwayCctv(command)
   CctvSvc -> CctvSvc : 좌표 범위 검증 + bounds normalize
   CctvSvc -> CctvSvc : 인접 고속도로 선정 + 최단거리 고속도로 선택
-  CctvSvc -> CctvSvc : 근접 임계치/폴백 규칙으로 CCTV 필터링
+  CctvSvc -> CctvSvc : 1km 거리 + 고속도로명 유사도 규칙으로 CCTV 필터링
   CctvSvc --> Form1 : 선택 고속도로 + CCTV 목록
   Form1 -> Form1 : 최신 CCTV 캐시 + 패널 갱신
 end
