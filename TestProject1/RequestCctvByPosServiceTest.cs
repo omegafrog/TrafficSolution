@@ -20,7 +20,7 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public async Task GetNearbyHighwayCctv_SelectsClosestHighwayAndReturnsNearbyCctv()
+        public async Task GetNearbyHighwayCctv_SelectsClosestHighwayAndAppliesDistanceAndNameSimilarity()
         {
             Mock<IOpenStreetQueryPort> openStreetPort = new Mock<IOpenStreetQueryPort>();
             Mock<IPublicTrafficApiPort> trafficApiPort = new Mock<IPublicTrafficApiPort>();
@@ -91,6 +91,20 @@ namespace TestProject1
                         Name = "영동선 CCTV",
                         StreamUrl = "https://example.com/b.m3u8",
                         Location = new Location { Latitude = 37.7001, Longitude = 127.3003, Name = "B" }
+                    },
+                    new CctvInfo
+                    {
+                        CctvId = "C",
+                        Name = "서울외곽선 CCTV",
+                        StreamUrl = "https://example.com/c.m3u8",
+                        Location = new Location { Latitude = 37.5008, Longitude = 127.0001, Name = "C" }
+                    },
+                    new CctvInfo
+                    {
+                        CctvId = "D",
+                        Name = "경부선 원거리 CCTV",
+                        StreamUrl = "https://example.com/d.m3u8",
+                        Location = new Location { Latitude = 37.5130, Longitude = 127.0002, Name = "D" }
                     }
                 });
 
@@ -100,7 +114,77 @@ namespace TestProject1
             Assert.AreEqual("경부고속도로", result.HighwayName);
             Assert.HasCount(1, result.CctvInfos);
             Assert.AreEqual("A", result.CctvInfos[0].CctvId);
+            Assert.IsFalse(result.CctvInfos.Any(info => info.CctvId == "C"));
+            Assert.IsFalse(result.CctvInfos.Any(info => info.CctvId == "D"));
             Assert.AreEqual(1, result.CctvInfos[0].HighwayNo);
+            Assert.AreEqual("경부고속도로", result.CctvInfos[0].HighwayName);
+        }
+
+        [TestMethod]
+        public async Task GetNearbyHighwayCctv_UsesRoadSectionIdForHighwayNameSimilarity()
+        {
+            Mock<IOpenStreetQueryPort> openStreetPort = new Mock<IOpenStreetQueryPort>();
+            Mock<IPublicTrafficApiPort> trafficApiPort = new Mock<IPublicTrafficApiPort>();
+            Mock<ICctvApiPort> cctvApiPort = new Mock<ICctvApiPort>();
+
+            RequestCctvByPosService service = new RequestCctvByPosService(openStreetPort.Object, trafficApiPort.Object, cctvApiPort.Object);
+
+            UpdateSelectedPosCctvInfoCommand command = new UpdateSelectedPosCctvInfoCommand(37.50, 127.00)
+            {
+                MinLongitude = 126.80,
+                MinLatitude = 37.30,
+                MaxLongitude = 127.20,
+                MaxLatitude = 37.70
+            };
+
+            openStreetPort
+                .Setup(port => port.GetAdjacentHighWays(It.IsAny<Location>()))
+                .ReturnsAsync(new Dictionary<int, HighWay>
+                {
+                    [1] = new HighWay { ReferenceNumber = "1", Name = "경부고속도로" }
+                });
+
+            trafficApiPort
+                .Setup(port => port.GetTrafficResult(1, It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>()))
+                .ReturnsAsync(new List<VdsTrafficResult>
+                {
+                    new VdsTrafficResult
+                    {
+                        VdsId = "0010VDS00001",
+                        CollectedDate = "2000-01-01 00:00:00",
+                        Speed = 85,
+                        Volume = 100,
+                        Occupancy = 15,
+                        Location = new Location { Latitude = 37.5005, Longitude = 127.0004, Name = "" }
+                    }
+                });
+
+            cctvApiPort
+                .Setup(port => port.GetCctvInfo(command.MinLongitude, command.MinLatitude, command.MaxLongitude, command.MaxLatitude))
+                .ReturnsAsync(new List<CctvInfo>
+                {
+                    new CctvInfo
+                    {
+                        CctvId = "A",
+                        Name = "요금소 인근",
+                        RoadSectionId = "경부선-서울방향",
+                        StreamUrl = "https://example.com/a.m3u8",
+                        Location = new Location { Latitude = 37.5007, Longitude = 127.0002, Name = "A" }
+                    },
+                    new CctvInfo
+                    {
+                        CctvId = "B",
+                        Name = "요금소 인근",
+                        RoadSectionId = "영동선-서울방향",
+                        StreamUrl = "https://example.com/b.m3u8",
+                        Location = new Location { Latitude = 37.5008, Longitude = 127.0002, Name = "B" }
+                    }
+                });
+
+            HighwayCctvSelection result = await service.GetNearbyHighwayCctv(command);
+
+            Assert.HasCount(1, result.CctvInfos);
+            Assert.AreEqual("A", result.CctvInfos[0].CctvId);
             Assert.AreEqual("경부고속도로", result.CctvInfos[0].HighwayName);
         }
 
