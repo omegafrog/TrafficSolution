@@ -1,0 +1,57 @@
+@startuml
+title TrafficSolution Architecture
+
+skinparam componentStyle rectangle
+
+actor "클라이언트 사용자" as User
+
+package "WinForms Client" {
+  component "Form1\n(WebView2 + Right Panel)" as Form1
+  component "RequestTrafficByPosService" as TrafficService
+  component "RequestCctvByPosService" as CctvService
+}
+
+package "Port" {
+  interface "IOpenStreetQueryPort" as OpenStreetPort
+  interface "IPublicTrafficApiPort" as TrafficApiPort
+  interface "ICctvApiPort" as CctvApiPort
+}
+
+package "Adapter" {
+  component "OpenStreetQueryAdapter" as OpenStreetAdapter
+  component "PublicTrafficApiAdapter" as PublicTrafficAdapter
+  component "CctvApiAdapter" as CctvApiAdapter
+  component "OpenStreetDbRepository" as OpenStreetRepo
+  component "VdsRepository" as VdsRepo
+}
+
+node "Docker: OpenStreet Tile Server" as TileServer
+database "Geo Postgres\n(vds, vds_loc)" as GeoDb
+cloud "ITS VDS API\nopenapi.its.go.kr/vdsInfo" as VdsApi
+cloud "ITS CCTV API\nopenapi.its.go.kr/cctvInfo" as CctvApi
+
+User --> Form1
+Form1 --> TrafficService
+Form1 --> CctvService
+
+TrafficService --> OpenStreetPort
+TrafficService --> TrafficApiPort
+CctvService --> OpenStreetPort
+CctvService --> TrafficApiPort
+CctvService --> CctvApiPort
+
+OpenStreetPort <|.. OpenStreetAdapter
+TrafficApiPort <|.. PublicTrafficAdapter
+CctvApiPort <|.. CctvApiAdapter
+
+OpenStreetAdapter --> OpenStreetRepo
+PublicTrafficAdapter --> VdsRepo
+OpenStreetRepo --> GeoDb
+VdsRepo --> GeoDb
+
+PublicTrafficAdapter --> VdsApi
+CctvApiAdapter --> CctvApi
+Form1 --> TileServer : Leaflet tile load (localhost:8080)
+TileServer --> GeoDb
+
+@enduml

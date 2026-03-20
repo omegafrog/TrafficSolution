@@ -1,0 +1,16 @@
+@startuml
+title UC-TRF-003 Data Flow
+
+actor User
+participant Form1
+participant "TrafficLevelPolicy" as Policy
+participant "VdsRepository" as VdsRepo
+database "Geo Postgres" as GeoDb
+
+User -> Form1 : 혼잡도 결과 확인
+Form1 -> VdsRepo : 책임 구간 좌표 조회
+VdsRepo -> GeoDb : vds_loc 조회
+GeoDb --> VdsRepo : 구간 좌표 목록
+Form1 -> Policy : 레벨별 색상 계산
+Form1 --> User : 구간 세그먼트 색상 표시
+@enduml

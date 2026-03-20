@@ -19,65 +19,7 @@
 
 ### 아키텍처 다이어그램 (PlantUML)
 
-```plantuml
-@startuml
-title TrafficSolution Architecture
-
-skinparam componentStyle rectangle
-
-actor "클라이언트 사용자" as User
-
-package "WinForms Client" {
-  component "Form1\n(WebView2 + Right Panel)" as Form1
-  component "RequestTrafficByPosService" as TrafficService
-  component "RequestCctvByPosService" as CctvService
-}
-
-package "Port" {
-  interface "IOpenStreetQueryPort" as OpenStreetPort
-  interface "IPublicTrafficApiPort" as TrafficApiPort
-  interface "ICctvApiPort" as CctvApiPort
-}
-
-package "Adapter" {
-  component "OpenStreetQueryAdapter" as OpenStreetAdapter
-  component "PublicTrafficApiAdapter" as PublicTrafficAdapter
-  component "CctvApiAdapter" as CctvApiAdapter
-  component "OpenStreetDbRepository" as OpenStreetRepo
-  component "VdsRepository" as VdsRepo
-}
-
-node "Docker: OpenStreet Tile Server" as TileServer
-database "Geo Postgres\n(vds, vds_loc)" as GeoDb
-cloud "ITS VDS API\nopenapi.its.go.kr/vdsInfo" as VdsApi
-cloud "ITS CCTV API\nopenapi.its.go.kr/cctvInfo" as CctvApi
-
-User --> Form1
-Form1 --> TrafficService
-Form1 --> CctvService
-
-TrafficService --> OpenStreetPort
-TrafficService --> TrafficApiPort
-CctvService --> OpenStreetPort
-CctvService --> TrafficApiPort
-CctvService --> CctvApiPort
-
-OpenStreetPort <|.. OpenStreetAdapter
-TrafficApiPort <|.. PublicTrafficAdapter
-CctvApiPort <|.. CctvApiAdapter
-
-OpenStreetAdapter --> OpenStreetRepo
-PublicTrafficAdapter --> VdsRepo
-OpenStreetRepo --> GeoDb
-VdsRepo --> GeoDb
-
-PublicTrafficAdapter --> VdsApi
-CctvApiAdapter --> CctvApi
-Form1 --> TileServer : Leaflet tile load (localhost:8080)
-TileServer --> GeoDb
-
-@enduml
-```
+![Rendered diagram 1](docs/images/plantuml/readme-01.svg)
 
 ## 디렉토리 구조
 
@@ -140,53 +82,7 @@ TrafficSolution/
 
 ### 유스케이스 다이어그램 (요약)
 
-```plantuml
-@startuml
-left to right direction
-skinparam packageStyle rectangle
-
-actor "클라이언트 사용자" as User
-actor "ITS VDS API" as VDSAPI
-actor "ITS CCTV API" as CCTVAPI
-actor "Geo Postgres" as DB
-
-rectangle "TrafficSolution" {
-  usecase "UC-MODE-001\n지도 모드 전환" as UCM1
-  usecase "UC-MODE-002\n패널 모드 전환" as UCM2
-  usecase "UC-TRF-001\n좌표 기반 혼잡도 조회" as UCT1
-  usecase "UC-TRF-002\nVDS 카드/마커 동기화" as UCT2
-  usecase "UC-TRF-003\n구간 혼잡도 색상 시각화" as UCT3
-  usecase "UC-CTV-001\n좌표 기반 CCTV 조회" as UCC1
-  usecase "UC-CTV-002\nCCTV 카드/마커 동기화" as UCC2
-  usecase "UC-CTV-003\nCCTV 재생" as UCC3
-  usecase "UC-OPS-001\n중복 요청 방지" as UCO1
-  usecase "UC-OPS-002\n좌표/경계 검증" as UCO2
-}
-
-User --> UCM1
-User --> UCM2
-User --> UCT1
-User --> UCT2
-User --> UCT3
-User --> UCC1
-User --> UCC2
-User --> UCC3
-
-UCT1 --> VDSAPI
-UCT1 --> DB
-UCT3 --> DB
-UCC1 --> CCTVAPI
-UCC1 --> VDSAPI
-UCC1 --> DB
-
-UCC1 ..> UCT1 : <<reuses>>\n(좌표/bounds 흐름)
-UCC3 ..> UCC2 : <<extends>>\n(선택 결과 재생)
-UCO1 ..> UCT1 : <<applies>>
-UCO1 ..> UCC1 : <<applies>>
-UCO2 ..> UCT1 : <<applies>>
-UCO2 ..> UCC1 : <<applies>>
-@enduml
-```
+![Rendered diagram 2](docs/images/plantuml/readme-02.svg)
 
 ## 유스케이스 상세 문서
 

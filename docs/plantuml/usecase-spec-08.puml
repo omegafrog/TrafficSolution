@@ -1,0 +1,22 @@
+@startuml
+title UC-TRF-001 Logic Flow
+
+actor User
+participant Form1
+participant TrafficSvc
+
+User -> Form1 : 좌표 클릭
+Form1 -> Form1 : 모드 확인(NearbyHighwayLookup)
+alt 모드 아님
+  Form1 --> User : 조회 비활성 상태 메시지
+else 모드 정상
+  Form1 -> Form1 : 요청 버전 증가, 로딩 상태 ON
+  Form1 -> TrafficSvc : GetAdjacentHighWays(command)
+  TrafficSvc -> TrafficSvc : 좌표 유효성 확인
+  TrafficSvc -> TrafficSvc : 고속도로별 결과 수집/필터링
+  TrafficSvc --> Form1 : 통합 결과
+  Form1 -> Form1 : 최신 결과 캐시
+  Form1 -> Form1 : 우측 패널 + 지도 갱신
+  Form1 --> User : 조회 완료 상태 메시지
+end
+@enduml

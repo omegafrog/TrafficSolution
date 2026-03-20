@@ -1,0 +1,16 @@
+@startuml
+title UC-OPS-001 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : pos-selected 이벤트 반복
+alt 동일 모드에서 이미 조회 중
+  Form1 --> User : "이미 조회 중" 메시지
+else
+  Form1 -> Form1 : 조회 시작 플래그 ON
+  Form1 -> Form1 : 요청 버전 증가
+  Form1 -> Form1 : 응답 시 버전/모드 검증
+  Form1 -> Form1 : 최신 요청만 렌더링
+end
+@enduml
