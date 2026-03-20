@@ -5,7 +5,9 @@
       "environmentVariables": {
         "SERVICE_KEY": "2198b200213546608bb1fb65babe3553",
         "CCTV_SERVICE_KEY": "2198b200213546608bb1fb65babe3553"
-      }
+      },
+      "nativeDebugging": true,
+      "jsWebView2Debugging": false
     }
   }
 }

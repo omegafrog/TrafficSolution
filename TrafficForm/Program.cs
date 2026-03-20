@@ -20,6 +20,28 @@ namespace TrafficForm
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
+
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+
+            Application.ThreadException += (s, e) =>
+            {
+                File.WriteAllText("thread-exception.log", e.Exception.ToString());
+                MessageBox.Show(e.Exception.ToString(), "UI Thread Exception");
+            };
+
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                File.WriteAllText("unhandled-exception.log", e.ExceptionObject?.ToString() ?? "null");
+            };
+
+            TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                File.WriteAllText("task-exception.log", e.Exception.ToString());
+                e.SetObserved();
+            };
+
+
+
             RegisterGlobalExceptionHandlers();
 
             var services = new ServiceCollection();
