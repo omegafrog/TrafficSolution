@@ -9,13 +9,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Infra\**" />
+    <EmbeddedResource Remove="Infra\**" />
+    <None Remove="Infra\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="osm-local\data\korea-latest-non-military.osm.pbf" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="osm-local\data\tiles\" />
     <Folder Include="osm-local\overpass-db\" />
-    <Folder Include="Infra\" />
   </ItemGroup>
 
   <ItemGroup>
