@@ -5,9 +5,9 @@ namespace TrafficForm
     public sealed class CctvListControl : UserControl
     {
         private static readonly Color HighlightBackgroundColor = Color.FromArgb(235, 247, 236);
-        private static readonly Color IdleBackgroundColor = Color.FromArgb(246, 249, 253);
+        private static readonly Color IdleBackgroundColor = Color.FromArgb(255, 255, 255);
         private static readonly Color HighlightBorderColor = Color.FromArgb(37, 117, 40);
-        private static readonly Color IdleBorderColor = Color.FromArgb(157, 169, 186);
+        private static readonly Color IdleBorderColor = Color.FromArgb(171, 184, 201);
 
         private readonly Panel _cardPanel = new Panel();
         private readonly Panel _highlightPanel = new Panel();
@@ -68,6 +68,7 @@ namespace TrafficForm
             Size = new Size(220, 104);
             MinimumSize = new Size(140, 104);
             Height = 104;
+            Margin = new Padding(0, 0, 0, 10);
             Padding = new Padding(5);
 
             _cardPanel.Dock = DockStyle.Fill;
