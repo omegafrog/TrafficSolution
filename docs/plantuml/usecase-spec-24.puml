@@ -1,0 +1,23 @@
+@startuml
+title UC-CTV-002 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : CCTV 카드 클릭
+Form1 -> Form1 : 선택 카드 하이라이트
+Form1 -> Form1 : 지도 마커 포커스 시도
+Form1 -> Form1 : TryValidateCctvUrl
+alt URL 검증 실패
+  Form1 --> User : 오류 상태 메시지
+else URL 정상
+  alt 팝업 이미 열림
+    Form1 --> User : 중복 열기 방지 메시지
+  else
+    Form1 -> Form1 : 팝업 열기 플래그 ON
+    Form1 -> Form1 : CctvPlayerPopupForm 표시
+    Form1 -> Form1 : 팝업 종료 후 플래그 OFF
+    Form1 --> User : 종료 상태 메시지
+  end
+end
+@enduml

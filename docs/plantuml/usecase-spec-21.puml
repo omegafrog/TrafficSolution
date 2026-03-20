@@ -1,0 +1,20 @@
+@startuml
+title UC-OPS-002 Logic Flow
+
+actor User
+participant Form1
+participant CctvSvc
+
+User -> Form1 : 좌표 선택
+Form1 -> Form1 : 좌표 JSON 파싱/정규화
+alt 파싱 실패
+  Form1 --> User : 조회 실패 메시지
+else 파싱 성공
+  Form1 -> CctvSvc : ValidateSelectedPoint + NormalizeBounds
+  alt 범위 초과
+    CctvSvc --> User : PointOutOfRangeException 경로
+  else 정상
+    CctvSvc --> Form1 : 조회 진행
+  end
+end
+@enduml

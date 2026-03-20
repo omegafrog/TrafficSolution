@@ -1,0 +1,31 @@
+@startuml
+title UC-CTV-001 Data Flow
+
+actor User
+participant Form1
+participant "RequestCctvByPosService" as CctvSvc
+participant "IOpenStreetQueryPort" as OpenStreetPort
+participant "IPublicTrafficApiPort" as TrafficApiPort
+participant "ICctvApiPort" as CctvApiPort
+participant "ITS CCTV API" as CctvApi
+
+User -> Form1 : 패널 모드=CCTV, 지도 클릭
+Form1 -> CctvSvc : GetNearbyHighwayCctv(command)
+
+CctvSvc -> OpenStreetPort : 인접 고속도로 조회
+OpenStreetPort --> CctvSvc : 고속도로 후보
+
+loop 고속도로별
+  CctvSvc -> TrafficApiPort : VDS 결과 조회(bounds)
+  TrafficApiPort --> CctvSvc : VDS 위치 목록
+end
+
+CctvSvc -> CctvApiPort : GetCctvInfo(bounds)
+CctvApiPort -> CctvApi : cctvInfo API 호출
+CctvApi --> CctvApiPort : CCTV 후보 목록
+CctvApiPort --> CctvSvc
+
+CctvSvc -> CctvSvc : 근접 고속도로 기준 필터링
+CctvSvc --> Form1 : HighwayCctvSelection
+Form1 -> Form1 : CCTV 카드/마커 렌더링
+@enduml

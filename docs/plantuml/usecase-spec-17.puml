@@ -1,0 +1,15 @@
+@startuml
+title UC-CTV-003 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : cctv-selected 또는 CardClicked
+Form1 -> Form1 : _cctvControlMap 조회
+alt 매핑된 카드 존재
+  Form1 -> Form1 : SelectCctvControl(control)
+else
+  Form1 -> Form1 : SelectCctvControl(null)
+end
+Form1 -> Form1 : 지도 마커 강조 동기화
+@enduml

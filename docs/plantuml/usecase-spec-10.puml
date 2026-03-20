@@ -1,0 +1,19 @@
+@startuml
+title UC-TRF-002 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : vds-selected 이벤트 유입
+Form1 -> Form1 : 현재 패널 모드 확인(혼잡도)
+alt 혼잡도 모드 아님
+  Form1 -> Form1 : 이벤트 무시
+else 혼잡도 모드
+  Form1 -> Form1 : vdsId 파싱
+  alt vdsId 유효 + 카드 존재
+    Form1 -> Form1 : 카드 선택/강조/요약 갱신
+  else
+    Form1 -> Form1 : 선택 해제
+  end
+end
+@enduml

@@ -1,0 +1,12 @@
+@startuml
+title UC-OPS-003 Data Flow
+
+actor User
+participant Form1
+participant "StatusStrip" as StatusBar
+
+User -> Form1 : 조회 동작 수행
+Form1 -> StatusBar : 조회 중 메시지 + busy ON
+Form1 -> StatusBar : 정리 중 메시지
+Form1 -> StatusBar : 완료 또는 실패 메시지 + busy OFF
+@enduml

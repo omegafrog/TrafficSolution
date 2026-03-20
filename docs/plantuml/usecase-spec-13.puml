@@ -1,0 +1,16 @@
+@startuml
+title UC-CTV-002 Data Flow
+
+actor User
+participant "CctvListControl" as CctvCard
+participant Form1
+participant "WebView2/Leaflet" as Map
+participant "CctvPlayerPopupForm" as Popup
+
+User -> CctvCard : 카드 클릭
+CctvCard -> Form1 : CardClicked(cctvId, streamUrl)
+Form1 -> Map : highlightCctvMarker(cctvId)
+Form1 -> Form1 : URL 유효성 검증
+Form1 -> Popup : ShowDialog(displayName, streamUrl)
+Popup --> User : 실시간 CCTV 재생 화면
+@enduml
