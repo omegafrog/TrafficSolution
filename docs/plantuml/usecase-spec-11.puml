@@ -25,7 +25,7 @@ CctvApiPort -> CctvApi : cctvInfo API 호출
 CctvApi --> CctvApiPort : CCTV 후보 목록
 CctvApiPort --> CctvSvc
 
-CctvSvc -> CctvSvc : 근접 고속도로 기준 필터링
+CctvSvc -> CctvSvc : 선택 고속도로 반경 1km + 고속도로명 유사 필터링
 CctvSvc --> Form1 : HighwayCctvSelection
 Form1 -> Form1 : CCTV 카드/마커 렌더링
 @enduml

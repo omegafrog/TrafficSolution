@@ -14,7 +14,7 @@ else CCTV 모드
   Form1 -> CctvSvc : GetNearbyHighwayCctv(command)
   CctvSvc -> CctvSvc : 좌표 범위 검증 + bounds normalize
   CctvSvc -> CctvSvc : 인접 고속도로 선정 + 최단거리 고속도로 선택
-  CctvSvc -> CctvSvc : 근접 임계치/폴백 규칙으로 CCTV 필터링
+  CctvSvc -> CctvSvc : 1km 거리 + 고속도로명 유사도 규칙으로 CCTV 필터링
   CctvSvc --> Form1 : 선택 고속도로 + CCTV 목록
   Form1 -> Form1 : 최신 CCTV 캐시 + 패널 갱신
 end
