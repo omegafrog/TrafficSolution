@@ -19,7 +19,7 @@
 
 ### 아키텍처 다이어그램 (PlantUML)
 
-![Rendered diagram 1](docs/images/plantuml/readme-01.png)
+![Rendered diagram 1](docs/images/plantuml/readme-01.svg)
 
 ## 디렉토리 구조
 
@@ -82,7 +82,7 @@ TrafficSolution/
 
 ### 유스케이스 다이어그램 (요약)
 
-![Rendered diagram 2](docs/images/plantuml/readme-02.png)
+![Rendered diagram 2](docs/images/plantuml/readme-02.svg)
 
 ## 유스케이스 상세 문서
 

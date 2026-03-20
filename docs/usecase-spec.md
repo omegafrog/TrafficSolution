@@ -34,11 +34,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 1](images/plantuml/usecase-spec-01.png)
+![Rendered diagram 1](images/plantuml/usecase-spec-01.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 2](images/plantuml/usecase-spec-02.png)
+![Rendered diagram 2](images/plantuml/usecase-spec-02.svg)
 
 ---
 
@@ -53,11 +53,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 3](images/plantuml/usecase-spec-03.png)
+![Rendered diagram 3](images/plantuml/usecase-spec-03.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 4](images/plantuml/usecase-spec-04.png)
+![Rendered diagram 4](images/plantuml/usecase-spec-04.svg)
 
 ---
 
@@ -72,11 +72,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 5](images/plantuml/usecase-spec-05.png)
+![Rendered diagram 5](images/plantuml/usecase-spec-05.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 6](images/plantuml/usecase-spec-06.png)
+![Rendered diagram 6](images/plantuml/usecase-spec-06.svg)
 
 ---
 
@@ -92,11 +92,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 7](images/plantuml/usecase-spec-07.png)
+![Rendered diagram 7](images/plantuml/usecase-spec-07.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 8](images/plantuml/usecase-spec-08.png)
+![Rendered diagram 8](images/plantuml/usecase-spec-08.svg)
 
 ---
 
@@ -111,11 +111,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 9](images/plantuml/usecase-spec-09.png)
+![Rendered diagram 9](images/plantuml/usecase-spec-09.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 10](images/plantuml/usecase-spec-10.png)
+![Rendered diagram 10](images/plantuml/usecase-spec-10.svg)
 
 ---
 
@@ -130,11 +130,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 11](images/plantuml/usecase-spec-11.png)
+![Rendered diagram 11](images/plantuml/usecase-spec-11.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 12](images/plantuml/usecase-spec-12.png)
+![Rendered diagram 12](images/plantuml/usecase-spec-12.svg)
 
 ---
 
@@ -149,7 +149,7 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 13](images/plantuml/usecase-spec-13.png)
+![Rendered diagram 13](images/plantuml/usecase-spec-13.svg)
 
 ---
 
@@ -164,11 +164,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 14](images/plantuml/usecase-spec-14.png)
+![Rendered diagram 14](images/plantuml/usecase-spec-14.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 15](images/plantuml/usecase-spec-15.png)
+![Rendered diagram 15](images/plantuml/usecase-spec-15.svg)
 
 ---
 
@@ -183,11 +183,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 16](images/plantuml/usecase-spec-16.png)
+![Rendered diagram 16](images/plantuml/usecase-spec-16.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 17](images/plantuml/usecase-spec-17.png)
+![Rendered diagram 17](images/plantuml/usecase-spec-17.svg)
 
 ---
 
@@ -202,11 +202,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 18](images/plantuml/usecase-spec-18.png)
+![Rendered diagram 18](images/plantuml/usecase-spec-18.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 19](images/plantuml/usecase-spec-19.png)
+![Rendered diagram 19](images/plantuml/usecase-spec-19.svg)
 
 ---
 
@@ -221,11 +221,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 20](images/plantuml/usecase-spec-20.png)
+![Rendered diagram 20](images/plantuml/usecase-spec-20.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 21](images/plantuml/usecase-spec-21.png)
+![Rendered diagram 21](images/plantuml/usecase-spec-21.svg)
 
 ---
 
@@ -240,12 +240,12 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-![Rendered diagram 22](images/plantuml/usecase-spec-22.png)
+![Rendered diagram 22](images/plantuml/usecase-spec-22.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 23](images/plantuml/usecase-spec-23.png)
+![Rendered diagram 23](images/plantuml/usecase-spec-23.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-![Rendered diagram 24](images/plantuml/usecase-spec-24.png)
+![Rendered diagram 24](images/plantuml/usecase-spec-24.svg)
