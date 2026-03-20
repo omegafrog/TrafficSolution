@@ -13,6 +13,10 @@ namespace TrafficForm
         private readonly RequestTrafficByPosService? _requestTrafficByPosService;
         private readonly Dictionary<string, HighwayListControl> _controlMap = new Dictionary<string, HighwayListControl>();
         private HighwayListControl? _selectedControl;
+        private readonly Panel _searchSummaryPanel = new Panel();
+        private readonly Label _searchSummaryTitleLabel = new Label();
+        private readonly Label _searchSummaryCountLabel = new Label();
+        private readonly Label _searchSummaryDetailLabel = new Label();
         private readonly ToolStripStatusLabel _statusMessageLabel = new ToolStripStatusLabel
         {
             Spring = true,
@@ -38,6 +42,7 @@ namespace TrafficForm
         private const string PosSelectedEventFlag = "pos-selected";
         private const string VdsMarkerSelectedEventFlag = "vds-selected";
         private const string SelectionClearedEventFlag = "selection-cleared";
+        private const string VdsMarkerSelectionClearedEventFlag = "vds-selection-cleared";
         private const string DefaultMapModeText = "일반 모드";
         private const string NearbyHighwayLookupModeText = "주변 고속도로 선택 모드";
 
@@ -57,6 +62,7 @@ namespace TrafficForm
             InitializeStatusStripUi();
             InitializeMapModeUi();
             InitializeRightPanelModeUi();
+            InitializeHighwayListPanelUi();
             SetStatusMessage("모드를 선택하세요.", false);
         }
 
@@ -68,6 +74,7 @@ namespace TrafficForm
             InitializeStatusStripUi();
             InitializeMapModeUi();
             InitializeRightPanelModeUi();
+            InitializeHighwayListPanelUi();
             SetStatusMessage("모드를 선택하세요.", false);
             InitializeWebView();
             //list펴기ToolStripMenuItem.Click += (s, e) => ShowHighwayPanel();
@@ -136,6 +143,71 @@ namespace TrafficForm
             _mapInteractionModeComboBox.SelectedItem = DefaultMapModeText;
 
             toolStrip1.Items.Add(_mapInteractionModeComboBox);
+        }
+
+        private void InitializeHighwayListPanelUi()
+        {
+            Color panelBackground = Color.FromArgb(243, 246, 251);
+
+            highwaylistContainer.Panel2.BackColor = panelBackground;
+
+            flowLayoutPanel1.BackColor = panelBackground;
+            flowLayoutPanel1.Padding = new Padding(12, 10, 12, 12);
+            flowLayoutPanel1.Margin = Padding.Empty;
+            flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
+            flowLayoutPanel1.WrapContents = false;
+            flowLayoutPanel1.Dock = DockStyle.Fill;
+            flowLayoutPanel1.SizeChanged -= FlowLayoutPanel1_SizeChanged;
+            flowLayoutPanel1.SizeChanged += FlowLayoutPanel1_SizeChanged;
+
+            _searchSummaryPanel.BackColor = Color.FromArgb(227, 236, 250);
+            _searchSummaryPanel.BorderStyle = BorderStyle.FixedSingle;
+            _searchSummaryPanel.Dock = DockStyle.Top;
+            _searchSummaryPanel.Height = 90;
+            _searchSummaryPanel.Margin = Padding.Empty;
+
+            _searchSummaryTitleLabel.AutoSize = true;
+            _searchSummaryTitleLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+            _searchSummaryTitleLabel.ForeColor = Color.FromArgb(46, 59, 79);
+            _searchSummaryTitleLabel.Location = new Point(10, 9);
+            _searchSummaryTitleLabel.Text = "VDS 검색 결과";
+
+            _searchSummaryCountLabel.AutoSize = true;
+            _searchSummaryCountLabel.Font = new Font("Segoe UI", 16F, FontStyle.Bold, GraphicsUnit.Point);
+            _searchSummaryCountLabel.ForeColor = Color.FromArgb(26, 79, 161);
+            _searchSummaryCountLabel.Location = new Point(8, 26);
+            _searchSummaryCountLabel.Text = "0건";
+
+            _searchSummaryDetailLabel.AutoEllipsis = true;
+            _searchSummaryDetailLabel.ForeColor = Color.FromArgb(67, 76, 92);
+            _searchSummaryDetailLabel.Location = new Point(10, 63);
+            _searchSummaryDetailLabel.Size = new Size(Math.Max(180, highwaylistContainer.Panel2.Width - 22), 18);
+            _searchSummaryDetailLabel.Text = "선택된 VDS가 없습니다.";
+
+            _searchSummaryPanel.Controls.Clear();
+            _searchSummaryPanel.Controls.Add(_searchSummaryTitleLabel);
+            _searchSummaryPanel.Controls.Add(_searchSummaryCountLabel);
+            _searchSummaryPanel.Controls.Add(_searchSummaryDetailLabel);
+
+            if (!highwaylistContainer.Panel2.Controls.Contains(_searchSummaryPanel))
+            {
+                highwaylistContainer.Panel2.Controls.Add(_searchSummaryPanel);
+            }
+
+            if (highwaylistContainer.Panel2.Controls.Contains(flowLayoutPanel1))
+            {
+                highwaylistContainer.Panel2.Controls.SetChildIndex(flowLayoutPanel1, 0);
+            }
+
+            if (highwaylistContainer.Panel2.Controls.Contains(_searchSummaryPanel))
+            {
+                highwaylistContainer.Panel2.Controls.SetChildIndex(
+                    _searchSummaryPanel,
+                    highwaylistContainer.Panel2.Controls.Count - 1);
+            }
+
+            highwaylistContainer.Panel2.PerformLayout();
+            UpdateSearchSummary(0, 0);
         }
 
         private async void MapInteractionModeComboBox_SelectedIndexChanged(object? sender, EventArgs e)
@@ -255,6 +327,10 @@ namespace TrafficForm
                 applyMapCursor();
 
                 map.on('click', function(e) {
+                window.chrome.webview.postMessage({
+                    type: "{{VdsMarkerSelectionClearedEventFlag}}"
+                });
+
                 if (!isPosSelectionMode) {
                     window.chrome.webview.postMessage({
                         type: "{{SelectionClearedEventFlag}}"
@@ -453,6 +529,80 @@ namespace TrafficForm
         {
 
         }
+
+        private void FlowLayoutPanel1_SizeChanged(object? sender, EventArgs e)
+        {
+            ResizeHighwayCards();
+            _searchSummaryDetailLabel.Width = Math.Max(180, highwaylistContainer.Panel2.Width - 22);
+        }
+
+        private void UpdateSearchSummary(int totalCount, int displayedCount)
+        {
+            _searchSummaryCountLabel.Text = $"{displayedCount:N0}건";
+
+            if (displayedCount == 0)
+            {
+                _searchSummaryDetailLabel.Text = "조회된 VDS가 없습니다.";
+                return;
+            }
+
+            _searchSummaryDetailLabel.Text = $"조회 {totalCount:N0}건, 목록 표시 {displayedCount:N0}건";
+        }
+
+        private void ResizeHighwayCards()
+        {
+            if (flowLayoutPanel1.Controls.Count == 0)
+            {
+                return;
+            }
+
+            int verticalScrollbarWidth = flowLayoutPanel1.VerticalScroll.Visible
+                ? SystemInformation.VerticalScrollBarWidth
+                : 0;
+            int targetWidth = Math.Max(
+                236,
+                flowLayoutPanel1.ClientSize.Width - flowLayoutPanel1.Padding.Horizontal - verticalScrollbarWidth - 4);
+
+            foreach (HighwayListControl control in flowLayoutPanel1.Controls.OfType<HighwayListControl>())
+            {
+                control.Width = targetWidth;
+            }
+        }
+
+        private void SelectControl(HighwayListControl? control)
+        {
+            if (_selectedControl == control)
+            {
+                if (_selectedControl != null && flowLayoutPanel1.Controls.Contains(_selectedControl))
+                {
+                    _selectedControl.SetHighlighted(true);
+                    flowLayoutPanel1.ScrollControlIntoView(_selectedControl);
+                    UpdateSearchSummary(_controlMap.Count, _controlMap.Count);
+                }
+
+                return;
+            }
+
+            _selectedControl?.ClearHighlight();
+            _selectedControl = control;
+
+            if (_selectedControl != null && flowLayoutPanel1.Controls.Contains(_selectedControl))
+            {
+                _selectedControl.SetHighlighted(true);
+                flowLayoutPanel1.ScrollControlIntoView(_selectedControl);
+            }
+
+            if (_selectedControl == null)
+            {
+                UpdateSearchSummary(_controlMap.Count, _controlMap.Count);
+            }
+        }
+
+        private void ClearSelectedControl()
+        {
+            SelectControl(null);
+        }
+
         private bool detailPanelOpen = false;
         private int detailPanelWidth = 320;
 
@@ -496,6 +646,9 @@ namespace TrafficForm
             List<HighwayListControl> controls = new List<HighwayListControl>();
             HashSet<string> renderedVdsIds = new HashSet<string>();
             Dictionary<string, int> markerOverlapCountByCoordinate = new Dictionary<string, int>();
+
+            flowLayoutPanel1.SuspendLayout();
+
             foreach (VdsTrafficResult result in results)
             {
                 if (!renderedVdsIds.Add(result.VdsId))
@@ -539,13 +692,17 @@ namespace TrafficForm
             }
 
             highwaylistContainer.PerformLayout();
-            flowLayoutPanel1.PerformLayout();
             EnsureRightPanelVisible();
+            flowLayoutPanel1.ResumeLayout();
+            flowLayoutPanel1.PerformLayout();
 
             foreach (var control in controls)
             {
                 control.Width = GetRightPanelCardWidth();
             }
+
+            ResizeHighwayCards();
+            UpdateSearchSummary(results.Count, controls.Count);
 
             //highwaylistContainer.SplitterDistance = highwaylistContainer.Width - detailPanelWidth;
         }
@@ -668,15 +825,26 @@ namespace TrafficForm
                     await webView21.CoreWebView2.ExecuteScriptAsync("clearHighlightedCctvMarker()");
                 }
             }
+            else if (IsVdsSelectionClearedEvent(message))
+            {
+                SelectTrafficControl(null);
+            }
 
         }
 
         private Task HighlightSelectedVdsControlFromMessage(string message)
         {
             string? vdsId = JsonNode.Parse(message)?["id"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(vdsId) && _controlMap.TryGetValue(vdsId, out HighwayListControl? control))
+            if (string.IsNullOrWhiteSpace(vdsId))
+            {
+                SelectTrafficControl(null);
+                return Task.CompletedTask;
+            }
+
+            if (_controlMap.TryGetValue(vdsId, out HighwayListControl? control))
             {
                 SelectTrafficControl(control);
+                _searchSummaryDetailLabel.Text = $"선택된 VDS: {vdsId}";
             }
             else
             {
@@ -697,6 +865,24 @@ namespace TrafficForm
                 type.Trim("\"");
                 return type.Equals(VdsMarkerSelectedEventFlag, StringComparison.Ordinal);
             }catch(Exception e)
+            {
+                Debug.WriteLine(e.Message);
+                return false;
+            }
+        }
+
+        private bool IsVdsSelectionClearedEvent(string message)
+        {
+            try
+            {
+                var node = JsonNode.Parse(message)?["type"];
+                if (node == null)
+                    return false;
+                var type = node.GetValue<string>();
+                type.Trim("\"");
+                return type.Equals(VdsMarkerSelectionClearedEventFlag, StringComparison.Ordinal);
+            }
+            catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
                 return false;
