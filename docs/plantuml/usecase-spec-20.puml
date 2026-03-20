@@ -1,0 +1,16 @@
+@startuml
+title UC-OPS-002 Data Flow
+
+actor User
+participant Form1
+participant RequestTrafficByPosService as TrafficSvc
+participant RequestCctvByPosService as CctvSvc
+participant UpdateSelectedPosCctvInfoCommand as CctvCmd
+
+User -> Form1 : 좌표 클릭 + bounds
+Form1 -> CctvCmd : NormalizeBounds()
+Form1 -> TrafficSvc : 트래픽 조회 명령
+Form1 -> CctvSvc : CCTV 조회 명령
+TrafficSvc --> Form1 : 유효성 오류 또는 결과
+CctvSvc --> Form1 : 유효성 오류 또는 결과
+@enduml

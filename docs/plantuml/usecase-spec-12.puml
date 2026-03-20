@@ -1,0 +1,21 @@
+@startuml
+title UC-CTV-001 Logic Flow
+
+actor User
+participant Form1
+participant CctvSvc
+
+User -> Form1 : 좌표 클릭
+Form1 -> Form1 : 패널 모드 확인(CCTV)
+alt CCTV 모드 아님
+  Form1 -> Form1 : 혼잡도 조회 분기로 전환
+else CCTV 모드
+  Form1 -> Form1 : 요청 버전 증가, 로딩 상태 ON
+  Form1 -> CctvSvc : GetNearbyHighwayCctv(command)
+  CctvSvc -> CctvSvc : 좌표 범위 검증 + bounds normalize
+  CctvSvc -> CctvSvc : 인접 고속도로 선정 + 최단거리 고속도로 선택
+  CctvSvc -> CctvSvc : 근접 임계치/폴백 규칙으로 CCTV 필터링
+  CctvSvc --> Form1 : 선택 고속도로 + CCTV 목록
+  Form1 -> Form1 : 최신 CCTV 캐시 + 패널 갱신
+end
+@enduml

@@ -1,0 +1,15 @@
+@startuml
+title UC-MODE-001 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : 모드 선택
+Form1 -> Form1 : _mapInteractionMode 갱신
+Form1 -> Form1 : UpdateMapCursorAsync
+alt NearbyHighwayLookup
+  Form1 --> User : 좌표 선택 모드 메시지
+else None
+  Form1 --> User : 조회 비활성화 메시지
+end
+@enduml

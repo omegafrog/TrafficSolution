@@ -1,0 +1,18 @@
+@startuml
+title UC-TRF-002 Data Flow
+
+actor User
+participant "Leaflet(JS in WebView)" as Leaflet
+participant Form1
+participant "HighwayListControl" as HighwayCard
+
+User -> Leaflet : VDS 마커 클릭
+Leaflet -> Form1 : web message(type=vds-selected, id)
+Form1 -> Form1 : controlMap에서 카드 조회
+Form1 -> HighwayCard : SetHighlighted(true)
+Form1 --> User : 카드 강조/스크롤 이동
+
+User -> Leaflet : 빈 지도 클릭
+Leaflet -> Form1 : web message(type=vds-selection-cleared)
+Form1 -> HighwayCard : ClearHighlight()
+@enduml

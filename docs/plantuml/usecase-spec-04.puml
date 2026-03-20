@@ -1,0 +1,16 @@
+@startuml
+title UC-CMN-001 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : 앱 시작
+Form1 -> Form1 : 상태바/모드 UI 초기화
+Form1 -> Form1 : InitializeWebView
+alt 지도 로딩 성공
+  Form1 -> Form1 : UpdateMapCursorAsync
+  Form1 --> User : "지도가 준비되었습니다."
+else 지도 로딩 실패
+  Form1 --> User : "지도 로딩에 실패했습니다."
+end
+@enduml

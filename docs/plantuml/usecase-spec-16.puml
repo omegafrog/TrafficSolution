@@ -1,0 +1,17 @@
+@startuml
+title UC-CTV-003 Data Flow
+
+actor User
+participant "WebView2/Leaflet" as Map
+participant Form1
+participant "CctvListControl" as Card
+
+User -> Map : CCTV 마커 클릭
+Map -> Form1 : cctv-selected(id)
+Form1 -> Card : SelectCctvControl
+Form1 --> User : 카드 강조/스크롤
+
+User -> Card : 카드 클릭
+Card -> Form1 : CardClicked(id)
+Form1 -> Map : highlightCctvMarker(id)
+@enduml

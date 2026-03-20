@@ -1,0 +1,14 @@
+@startuml
+title UC-OPS-003 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : 조회 시작
+Form1 -> Form1 : SetStatusMessage(..., true)
+alt 성공
+  Form1 -> Form1 : SetStatusMessage(완료 메시지, false)
+else 실패
+  Form1 -> Form1 : SetStatusMessage(실패 메시지, false)
+end
+@enduml

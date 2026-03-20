@@ -1,0 +1,14 @@
+@startuml
+title UC-TRF-003 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : 조회 결과 화면 확인
+Form1 -> Form1 : clearSegments
+loop VDS 결과별
+  Form1 -> Form1 : responsibility segment 존재 여부 확인
+  Form1 -> Form1 : TrafficLevelPolicy.GetColorHex
+  Form1 -> Form1 : addSegment(points, color)
+end
+@enduml

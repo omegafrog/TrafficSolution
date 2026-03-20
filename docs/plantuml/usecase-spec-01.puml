@@ -1,0 +1,11 @@
+@startuml
+title UC-MODE-002 Data Flow
+
+actor User
+participant Form1
+
+User -> Form1 : 패널 모드 변경(혼잡도/CCTV)
+Form1 -> Form1 : SetRightPanelModeAsync(nextMode)
+Form1 -> Form1 : 기존 하이라이트/마커 초기화
+Form1 --> User : 모드 전환 상태 메시지
+@enduml

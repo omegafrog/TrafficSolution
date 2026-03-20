@@ -1,0 +1,15 @@
+@startuml
+title UC-OPS-001 Data Flow
+
+actor User
+participant Form1
+participant TrafficSvc
+participant CctvSvc
+
+User -> Form1 : 연속 조회 클릭
+Form1 -> Form1 : Interlocked.Increment(requestVersion)
+Form1 -> TrafficSvc : 트래픽 조회(또는)
+Form1 -> CctvSvc : CCTV 조회
+TrafficSvc --> Form1 : 결과
+Form1 -> Form1 : requestVersion 비교 후 최신만 반영
+@enduml

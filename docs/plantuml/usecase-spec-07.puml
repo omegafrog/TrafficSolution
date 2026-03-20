@@ -1,0 +1,43 @@
+@startuml
+title UC-TRF-001 Data Flow
+
+actor User
+participant "Form1(WebView2)" as Form1
+participant "RequestTrafficByPosService" as TrafficSvc
+participant "IOpenStreetQueryPort" as OpenStreetPort
+participant "OpenStreetQueryAdapter" as OpenStreetAdapter
+participant "OpenStreetDbRepository" as OpenStreetRepo
+database "Geo Postgres" as GeoDb
+participant "IPublicTrafficApiPort" as TrafficApiPort
+participant "PublicTrafficApiAdapter" as TrafficAdapter
+participant "ITS VDS API" as VdsApi
+participant "VdsRepository" as VdsRepo
+
+User -> Form1 : 지도 클릭(lat, lon, bounds)
+Form1 -> TrafficSvc : GetAdjacentHighWays(command)
+
+TrafficSvc -> OpenStreetPort : GetAdjacentHighWays(location)
+OpenStreetPort -> OpenStreetAdapter
+OpenStreetAdapter -> OpenStreetRepo : findAdjacentHighways(lat, lon)
+OpenStreetRepo -> GeoDb : 공간 쿼리(motorway/trunk)
+GeoDb --> OpenStreetRepo : 인접 고속도로 목록
+OpenStreetRepo --> OpenStreetAdapter
+OpenStreetAdapter --> OpenStreetPort
+OpenStreetPort --> TrafficSvc
+
+loop 고속도로별 VDS 조회
+  TrafficSvc -> TrafficApiPort : GetTrafficResult(highwayNo, bounds)
+  TrafficApiPort -> TrafficAdapter
+  TrafficAdapter -> VdsApi : vdsInfo API 호출
+  VdsApi --> TrafficAdapter : 속도/점유율/볼륨
+  TrafficAdapter -> VdsRepo : findVdsIdIn + findResponsibilitySegments
+  VdsRepo -> GeoDb : vds / vds_loc 조회
+  GeoDb --> VdsRepo : 좌표/구간
+  VdsRepo --> TrafficAdapter
+  TrafficAdapter --> TrafficApiPort
+  TrafficApiPort --> TrafficSvc
+end
+
+TrafficSvc --> Form1 : Dictionary<int, List<VdsTrafficResult>>
+Form1 -> Form1 : 카드/마커/세그먼트 렌더링
+@enduml

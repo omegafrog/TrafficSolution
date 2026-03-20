@@ -1,0 +1,14 @@
+@startuml
+title UC-CMN-001 Data Flow
+
+actor User
+participant Program
+participant Form1
+participant "WebView2" as WebView
+
+User -> Program : 앱 실행
+Program -> Form1 : Form 생성/DI 주입
+Form1 -> WebView : 지도 HTML 로딩
+WebView --> Form1 : NavigationCompleted
+Form1 --> User : 지도 준비 상태 표시
+@enduml

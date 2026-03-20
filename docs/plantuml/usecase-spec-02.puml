@@ -1,0 +1,16 @@
+@startuml
+title UC-MODE-002 Logic Flow
+
+actor User
+participant Form1
+
+User -> Form1 : 모드 선택
+Form1 -> Form1 : 현재 모드와 비교
+alt 동일 모드
+  Form1 -> Form1 : 변경 없이 종료
+else 다른 모드
+  Form1 -> Form1 : 모드 값 갱신
+  Form1 -> Form1 : 기존 하이라이트/마커 초기화
+  Form1 -> Form1 : 외부 조회 없이 대기 상태 유지
+end
+@enduml

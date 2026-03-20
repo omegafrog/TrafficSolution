@@ -34,40 +34,11 @@
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-MODE-002 Data Flow
-
-actor User
-participant Form1
-
-User -> Form1 : 패널 모드 변경(혼잡도/CCTV)
-Form1 -> Form1 : SetRightPanelModeAsync(nextMode)
-Form1 -> Form1 : 기존 하이라이트/마커 초기화
-Form1 --> User : 모드 전환 상태 메시지
-@enduml
-```
+![Rendered diagram 1](images/plantuml/usecase-spec-01.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-MODE-002 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : 모드 선택
-Form1 -> Form1 : 현재 모드와 비교
-alt 동일 모드
-  Form1 -> Form1 : 변경 없이 종료
-else 다른 모드
-  Form1 -> Form1 : 모드 값 갱신
-  Form1 -> Form1 : 기존 하이라이트/마커 초기화
-  Form1 -> Form1 : 외부 조회 없이 대기 상태 유지
-end
-@enduml
-```
+![Rendered diagram 2](images/plantuml/usecase-spec-02.svg)
 
 ---
 
@@ -82,43 +53,11 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CMN-001 Data Flow
-
-actor User
-participant Program
-participant Form1
-participant "WebView2" as WebView
-
-User -> Program : 앱 실행
-Program -> Form1 : Form 생성/DI 주입
-Form1 -> WebView : 지도 HTML 로딩
-WebView --> Form1 : NavigationCompleted
-Form1 --> User : 지도 준비 상태 표시
-@enduml
-```
+![Rendered diagram 3](images/plantuml/usecase-spec-03.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CMN-001 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : 앱 시작
-Form1 -> Form1 : 상태바/모드 UI 초기화
-Form1 -> Form1 : InitializeWebView
-alt 지도 로딩 성공
-  Form1 -> Form1 : UpdateMapCursorAsync
-  Form1 --> User : "지도가 준비되었습니다."
-else 지도 로딩 실패
-  Form1 --> User : "지도 로딩에 실패했습니다."
-end
-@enduml
-```
+![Rendered diagram 4](images/plantuml/usecase-spec-04.svg)
 
 ---
 
@@ -133,40 +72,11 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-MODE-001 Data Flow
-
-actor User
-participant Form1
-participant "WebView2/Leaflet" as Map
-
-User -> Form1 : 지도 모드 변경
-Form1 -> Form1 : SetMapInteractionModeAsync
-Form1 -> Map : setPosSelectionMode(true/false)
-Form1 --> User : 모드 안내 상태 메시지
-@enduml
-```
+![Rendered diagram 5](images/plantuml/usecase-spec-05.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-MODE-001 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : 모드 선택
-Form1 -> Form1 : _mapInteractionMode 갱신
-Form1 -> Form1 : UpdateMapCursorAsync
-alt NearbyHighwayLookup
-  Form1 --> User : 좌표 선택 모드 메시지
-else None
-  Form1 --> User : 조회 비활성화 메시지
-end
-@enduml
-```
+![Rendered diagram 6](images/plantuml/usecase-spec-06.svg)
 
 ---
 
@@ -182,78 +92,11 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-TRF-001 Data Flow
-
-actor User
-participant "Form1(WebView2)" as Form1
-participant "RequestTrafficByPosService" as TrafficSvc
-participant "IOpenStreetQueryPort" as OpenStreetPort
-participant "OpenStreetQueryAdapter" as OpenStreetAdapter
-participant "OpenStreetDbRepository" as OpenStreetRepo
-database "Geo Postgres" as GeoDb
-participant "IPublicTrafficApiPort" as TrafficApiPort
-participant "PublicTrafficApiAdapter" as TrafficAdapter
-participant "ITS VDS API" as VdsApi
-participant "VdsRepository" as VdsRepo
-
-User -> Form1 : 지도 클릭(lat, lon, bounds)
-Form1 -> TrafficSvc : GetAdjacentHighWays(command)
-
-TrafficSvc -> OpenStreetPort : GetAdjacentHighWays(location)
-OpenStreetPort -> OpenStreetAdapter
-OpenStreetAdapter -> OpenStreetRepo : findAdjacentHighways(lat, lon)
-OpenStreetRepo -> GeoDb : 공간 쿼리(motorway/trunk)
-GeoDb --> OpenStreetRepo : 인접 고속도로 목록
-OpenStreetRepo --> OpenStreetAdapter
-OpenStreetAdapter --> OpenStreetPort
-OpenStreetPort --> TrafficSvc
-
-loop 고속도로별 VDS 조회
-  TrafficSvc -> TrafficApiPort : GetTrafficResult(highwayNo, bounds)
-  TrafficApiPort -> TrafficAdapter
-  TrafficAdapter -> VdsApi : vdsInfo API 호출
-  VdsApi --> TrafficAdapter : 속도/점유율/볼륨
-  TrafficAdapter -> VdsRepo : findVdsIdIn + findResponsibilitySegments
-  VdsRepo -> GeoDb : vds / vds_loc 조회
-  GeoDb --> VdsRepo : 좌표/구간
-  VdsRepo --> TrafficAdapter
-  TrafficAdapter --> TrafficApiPort
-  TrafficApiPort --> TrafficSvc
-end
-
-TrafficSvc --> Form1 : Dictionary<int, List<VdsTrafficResult>>
-Form1 -> Form1 : 카드/마커/세그먼트 렌더링
-@enduml
-```
+![Rendered diagram 7](images/plantuml/usecase-spec-07.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-TRF-001 Logic Flow
-
-actor User
-participant Form1
-participant TrafficSvc
-
-User -> Form1 : 좌표 클릭
-Form1 -> Form1 : 모드 확인(NearbyHighwayLookup)
-alt 모드 아님
-  Form1 --> User : 조회 비활성 상태 메시지
-else 모드 정상
-  Form1 -> Form1 : 요청 버전 증가, 로딩 상태 ON
-  Form1 -> TrafficSvc : GetAdjacentHighWays(command)
-  TrafficSvc -> TrafficSvc : 좌표 유효성 확인
-  TrafficSvc -> TrafficSvc : 고속도로별 결과 수집/필터링
-  TrafficSvc --> Form1 : 통합 결과
-  Form1 -> Form1 : 최신 결과 캐시
-  Form1 -> Form1 : 우측 패널 + 지도 갱신
-  Form1 --> User : 조회 완료 상태 메시지
-end
-@enduml
-```
+![Rendered diagram 8](images/plantuml/usecase-spec-08.svg)
 
 ---
 
@@ -268,50 +111,11 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-TRF-002 Data Flow
-
-actor User
-participant "Leaflet(JS in WebView)" as Leaflet
-participant Form1
-participant "HighwayListControl" as HighwayCard
-
-User -> Leaflet : VDS 마커 클릭
-Leaflet -> Form1 : web message(type=vds-selected, id)
-Form1 -> Form1 : controlMap에서 카드 조회
-Form1 -> HighwayCard : SetHighlighted(true)
-Form1 --> User : 카드 강조/스크롤 이동
-
-User -> Leaflet : 빈 지도 클릭
-Leaflet -> Form1 : web message(type=vds-selection-cleared)
-Form1 -> HighwayCard : ClearHighlight()
-@enduml
-```
+![Rendered diagram 9](images/plantuml/usecase-spec-09.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-TRF-002 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : vds-selected 이벤트 유입
-Form1 -> Form1 : 현재 패널 모드 확인(혼잡도)
-alt 혼잡도 모드 아님
-  Form1 -> Form1 : 이벤트 무시
-else 혼잡도 모드
-  Form1 -> Form1 : vdsId 파싱
-  alt vdsId 유효 + 카드 존재
-    Form1 -> Form1 : 카드 선택/강조/요약 갱신
-  else
-    Form1 -> Form1 : 선택 해제
-  end
-end
-@enduml
-```
+![Rendered diagram 10](images/plantuml/usecase-spec-10.svg)
 
 ---
 
@@ -326,65 +130,11 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CTV-001 Data Flow
-
-actor User
-participant Form1
-participant "RequestCctvByPosService" as CctvSvc
-participant "IOpenStreetQueryPort" as OpenStreetPort
-participant "IPublicTrafficApiPort" as TrafficApiPort
-participant "ICctvApiPort" as CctvApiPort
-participant "ITS CCTV API" as CctvApi
-
-User -> Form1 : 패널 모드=CCTV, 지도 클릭
-Form1 -> CctvSvc : GetNearbyHighwayCctv(command)
-
-CctvSvc -> OpenStreetPort : 인접 고속도로 조회
-OpenStreetPort --> CctvSvc : 고속도로 후보
-
-loop 고속도로별
-  CctvSvc -> TrafficApiPort : VDS 결과 조회(bounds)
-  TrafficApiPort --> CctvSvc : VDS 위치 목록
-end
-
-CctvSvc -> CctvApiPort : GetCctvInfo(bounds)
-CctvApiPort -> CctvApi : cctvInfo API 호출
-CctvApi --> CctvApiPort : CCTV 후보 목록
-CctvApiPort --> CctvSvc
-
-CctvSvc -> CctvSvc : 근접 고속도로 기준 필터링
-CctvSvc --> Form1 : HighwayCctvSelection
-Form1 -> Form1 : CCTV 카드/마커 렌더링
-@enduml
-```
+![Rendered diagram 11](images/plantuml/usecase-spec-11.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CTV-001 Logic Flow
-
-actor User
-participant Form1
-participant CctvSvc
-
-User -> Form1 : 좌표 클릭
-Form1 -> Form1 : 패널 모드 확인(CCTV)
-alt CCTV 모드 아님
-  Form1 -> Form1 : 혼잡도 조회 분기로 전환
-else CCTV 모드
-  Form1 -> Form1 : 요청 버전 증가, 로딩 상태 ON
-  Form1 -> CctvSvc : GetNearbyHighwayCctv(command)
-  CctvSvc -> CctvSvc : 좌표 범위 검증 + bounds normalize
-  CctvSvc -> CctvSvc : 인접 고속도로 선정 + 최단거리 고속도로 선택
-  CctvSvc -> CctvSvc : 근접 임계치/폴백 규칙으로 CCTV 필터링
-  CctvSvc --> Form1 : 선택 고속도로 + CCTV 목록
-  Form1 -> Form1 : 최신 CCTV 캐시 + 패널 갱신
-end
-@enduml
-```
+![Rendered diagram 12](images/plantuml/usecase-spec-12.svg)
 
 ---
 
@@ -399,24 +149,7 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CTV-002 Data Flow
-
-actor User
-participant "CctvListControl" as CctvCard
-participant Form1
-participant "WebView2/Leaflet" as Map
-participant "CctvPlayerPopupForm" as Popup
-
-User -> CctvCard : 카드 클릭
-CctvCard -> Form1 : CardClicked(cctvId, streamUrl)
-Form1 -> Map : highlightCctvMarker(cctvId)
-Form1 -> Form1 : URL 유효성 검증
-Form1 -> Popup : ShowDialog(displayName, streamUrl)
-Popup --> User : 실시간 CCTV 재생 화면
-@enduml
-```
+![Rendered diagram 13](images/plantuml/usecase-spec-13.svg)
 
 ---
 
@@ -431,43 +164,11 @@ Popup --> User : 실시간 CCTV 재생 화면
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-TRF-003 Data Flow
-
-actor User
-participant Form1
-participant "TrafficLevelPolicy" as Policy
-participant "VdsRepository" as VdsRepo
-database "Geo Postgres" as GeoDb
-
-User -> Form1 : 혼잡도 결과 확인
-Form1 -> VdsRepo : 책임 구간 좌표 조회
-VdsRepo -> GeoDb : vds_loc 조회
-GeoDb --> VdsRepo : 구간 좌표 목록
-Form1 -> Policy : 레벨별 색상 계산
-Form1 --> User : 구간 세그먼트 색상 표시
-@enduml
-```
+![Rendered diagram 14](images/plantuml/usecase-spec-14.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-TRF-003 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : 조회 결과 화면 확인
-Form1 -> Form1 : clearSegments
-loop VDS 결과별
-  Form1 -> Form1 : responsibility segment 존재 여부 확인
-  Form1 -> Form1 : TrafficLevelPolicy.GetColorHex
-  Form1 -> Form1 : addSegment(points, color)
-end
-@enduml
-```
+![Rendered diagram 15](images/plantuml/usecase-spec-15.svg)
 
 ---
 
@@ -482,45 +183,11 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CTV-003 Data Flow
-
-actor User
-participant "WebView2/Leaflet" as Map
-participant Form1
-participant "CctvListControl" as Card
-
-User -> Map : CCTV 마커 클릭
-Map -> Form1 : cctv-selected(id)
-Form1 -> Card : SelectCctvControl
-Form1 --> User : 카드 강조/스크롤
-
-User -> Card : 카드 클릭
-Card -> Form1 : CardClicked(id)
-Form1 -> Map : highlightCctvMarker(id)
-@enduml
-```
+![Rendered diagram 16](images/plantuml/usecase-spec-16.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CTV-003 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : cctv-selected 또는 CardClicked
-Form1 -> Form1 : _cctvControlMap 조회
-alt 매핑된 카드 존재
-  Form1 -> Form1 : SelectCctvControl(control)
-else
-  Form1 -> Form1 : SelectCctvControl(null)
-end
-Form1 -> Form1 : 지도 마커 강조 동기화
-@enduml
-```
+![Rendered diagram 17](images/plantuml/usecase-spec-17.svg)
 
 ---
 
@@ -535,44 +202,11 @@ Form1 -> Form1 : 지도 마커 강조 동기화
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-OPS-001 Data Flow
-
-actor User
-participant Form1
-participant TrafficSvc
-participant CctvSvc
-
-User -> Form1 : 연속 조회 클릭
-Form1 -> Form1 : Interlocked.Increment(requestVersion)
-Form1 -> TrafficSvc : 트래픽 조회(또는)
-Form1 -> CctvSvc : CCTV 조회
-TrafficSvc --> Form1 : 결과
-Form1 -> Form1 : requestVersion 비교 후 최신만 반영
-@enduml
-```
+![Rendered diagram 18](images/plantuml/usecase-spec-18.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-OPS-001 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : pos-selected 이벤트 반복
-alt 동일 모드에서 이미 조회 중
-  Form1 --> User : "이미 조회 중" 메시지
-else
-  Form1 -> Form1 : 조회 시작 플래그 ON
-  Form1 -> Form1 : 요청 버전 증가
-  Form1 -> Form1 : 응답 시 버전/모드 검증
-  Form1 -> Form1 : 최신 요청만 렌더링
-end
-@enduml
-```
+![Rendered diagram 19](images/plantuml/usecase-spec-19.svg)
 
 ---
 
@@ -587,49 +221,11 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-OPS-002 Data Flow
-
-actor User
-participant Form1
-participant RequestTrafficByPosService as TrafficSvc
-participant RequestCctvByPosService as CctvSvc
-participant UpdateSelectedPosCctvInfoCommand as CctvCmd
-
-User -> Form1 : 좌표 클릭 + bounds
-Form1 -> CctvCmd : NormalizeBounds()
-Form1 -> TrafficSvc : 트래픽 조회 명령
-Form1 -> CctvSvc : CCTV 조회 명령
-TrafficSvc --> Form1 : 유효성 오류 또는 결과
-CctvSvc --> Form1 : 유효성 오류 또는 결과
-@enduml
-```
+![Rendered diagram 20](images/plantuml/usecase-spec-20.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-OPS-002 Logic Flow
-
-actor User
-participant Form1
-participant CctvSvc
-
-User -> Form1 : 좌표 선택
-Form1 -> Form1 : 좌표 JSON 파싱/정규화
-alt 파싱 실패
-  Form1 --> User : 조회 실패 메시지
-else 파싱 성공
-  Form1 -> CctvSvc : ValidateSelectedPoint + NormalizeBounds
-  alt 범위 초과
-    CctvSvc --> User : PointOutOfRangeException 경로
-  else 정상
-    CctvSvc --> Form1 : 조회 진행
-  end
-end
-@enduml
-```
+![Rendered diagram 21](images/plantuml/usecase-spec-21.svg)
 
 ---
 
@@ -644,64 +240,12 @@ end
 
 ### 2) 데이터 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-OPS-003 Data Flow
-
-actor User
-participant Form1
-participant "StatusStrip" as StatusBar
-
-User -> Form1 : 조회 동작 수행
-Form1 -> StatusBar : 조회 중 메시지 + busy ON
-Form1 -> StatusBar : 정리 중 메시지
-Form1 -> StatusBar : 완료 또는 실패 메시지 + busy OFF
-@enduml
-```
+![Rendered diagram 22](images/plantuml/usecase-spec-22.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-OPS-003 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : 조회 시작
-Form1 -> Form1 : SetStatusMessage(..., true)
-alt 성공
-  Form1 -> Form1 : SetStatusMessage(완료 메시지, false)
-else 실패
-  Form1 -> Form1 : SetStatusMessage(실패 메시지, false)
-end
-@enduml
-```
+![Rendered diagram 23](images/plantuml/usecase-spec-23.svg)
 
 ### 3) 로직 흐름 (Sequence Diagram)
 
-```plantuml
-@startuml
-title UC-CTV-002 Logic Flow
-
-actor User
-participant Form1
-
-User -> Form1 : CCTV 카드 클릭
-Form1 -> Form1 : 선택 카드 하이라이트
-Form1 -> Form1 : 지도 마커 포커스 시도
-Form1 -> Form1 : TryValidateCctvUrl
-alt URL 검증 실패
-  Form1 --> User : 오류 상태 메시지
-else URL 정상
-  alt 팝업 이미 열림
-    Form1 --> User : 중복 열기 방지 메시지
-  else
-    Form1 -> Form1 : 팝업 열기 플래그 ON
-    Form1 -> Form1 : CctvPlayerPopupForm 표시
-    Form1 -> Form1 : 팝업 종료 후 플래그 OFF
-    Form1 --> User : 종료 상태 메시지
-  end
-end
-@enduml
-```
+![Rendered diagram 24](images/plantuml/usecase-spec-24.svg)

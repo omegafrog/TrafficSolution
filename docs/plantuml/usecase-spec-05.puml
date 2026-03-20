@@ -1,0 +1,12 @@
+@startuml
+title UC-MODE-001 Data Flow
+
+actor User
+participant Form1
+participant "WebView2/Leaflet" as Map
+
+User -> Form1 : 지도 모드 변경
+Form1 -> Form1 : SetMapInteractionModeAsync
+Form1 -> Map : setPosSelectionMode(true/false)
+Form1 --> User : 모드 안내 상태 메시지
+@enduml
