@@ -1,6 +1,6 @@
 using TrafficForm.Domain;
 
-namespace TrafficForm
+namespace TrafficForm.UI
 {
     public sealed class CctvListControl : UserControl
     {
