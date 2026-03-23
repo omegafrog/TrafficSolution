@@ -23,23 +23,35 @@ jobs:
         run: New-Item -ItemType Directory -Force -Path .sisyphus/evidence
 
       - name: Build solution
+        id: build
+        continue-on-error: true
         shell: pwsh
         run: |
           dotnet build TrafficSolution.slnx -c Release 2>&1 | Tee-Object -FilePath .sisyphus/evidence/task-6-build-test-windows.txt
-          $exitCode = $LASTEXITCODE
-          if ($exitCode -ne 0) { exit $exitCode }
+          "exitCode=$LASTEXITCODE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Run unit tests
+        id: test
+        continue-on-error: true
         shell: pwsh
         run: |
           dotnet test TestProject1/TrafficTestProject.csproj -c Release 2>&1 | Tee-Object -FilePath .sisyphus/evidence/task-6-test-windows.txt
-          $exitCode = $LASTEXITCODE
-          if ($exitCode -ne 0) { exit $exitCode }
+          "exitCode=$LASTEXITCODE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: task-6-build-test-windows
           path: |
             .sisyphus/evidence/task-6-build-test-windows.txt
             .sisyphus/evidence/task-6-test-windows.txt
+
+      - name: Fail job if build or test failed
+        if: always()
+        shell: pwsh
+        run: |
+          $buildExit = [int]"${{ steps.build.outputs.exitCode }}"
+          $testExit = [int]"${{ steps.test.outputs.exitCode }}"
+          if ($buildExit -ne 0) { exit $buildExit }
+          if ($testExit -ne 0) { exit $testExit }
