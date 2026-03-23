@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TrafficForm.Port;
 using TrafficForm.Adapter;
 using System.Diagnostics;
-using System.Threading;
 
 namespace TrafficForm
 {
@@ -49,14 +48,30 @@ namespace TrafficForm
             services.AddSingleton<RequestTrafficByPosService>();
             services.AddSingleton<RequestCctvByPosService>();
             services.AddSingleton<IOpenStreetQueryPort, OpenStreetQueryAdapter>();
-            services.AddSingleton<IPublicTrafficApiPort, PublicTrafficApiAdapter>();
+            services.AddSingleton<VdsTrafficSnapshotStore>();
+            services.AddSingleton<IVdsTrafficSnapshotSourcePort, ItsVdsTrafficSnapshotSourceAdapter>();
+            services.AddSingleton<VdsTrafficSnapshotRefresher>();
+            services.AddSingleton<IVdsTrafficSnapshotRefresherPort>(
+                provider => provider.GetRequiredService<VdsTrafficSnapshotRefresher>());
+            services.AddSingleton<IVdsGeoRepositoryPort>(
+                provider => provider.GetRequiredService<VdsRepository>());
+            services.AddSingleton<IPublicTrafficApiPort, CachedPublicTrafficApiAdapter>();
             services.AddSingleton<ICctvApiPort, CctvApiAdapter>();
             services.AddSingleton<VdsRepository>();
             services.AddSingleton<OpenStreetDbRepository>();
             services.AddSingleton<HttpClient>();
             using var provider = services.BuildServiceProvider();
+            VdsTrafficSnapshotRefresher refresher = provider.GetRequiredService<VdsTrafficSnapshotRefresher>();
+            refresher.Start();
 
-            Application.Run(provider.GetRequiredService<Form1>());
+            try
+            {
+                Application.Run(provider.GetRequiredService<Form1>());
+            }
+            finally
+            {
+                refresher.StopAsync().GetAwaiter().GetResult();
+            }
         }
 
         private static void RegisterGlobalExceptionHandlers()

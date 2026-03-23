@@ -1,10 +1,11 @@
 ﻿using Npgsql;
 using TrafficForm.App;
 using TrafficForm.Domain;
+using TrafficForm.Port;
 
 namespace TrafficForm.Adapter
 {
-    public class VdsRepository
+    public class VdsRepository : IVdsGeoRepositoryPort
     {
         private readonly string datasource = "Host=localhost;Port=5432;Database=gis;Username=renderer;Password=renderer";
 
@@ -16,7 +17,7 @@ namespace TrafficForm.Adapter
         }
 
         // lat/lon 범위 안에 있고 highwayNo를 가지는 VdsId 리스트를 찾는 메소드 
-        internal async  Task<Dictionary<string, Tuple<double, double>>> findVdsIdIn(int highwayNo, double minLatitude, double minLongitude, double maxLatitude, double maxLongitude)
+        public async Task<Dictionary<string, Tuple<double, double>>> findVdsIdIn(int highwayNo, double minLatitude, double minLongitude, double maxLatitude, double maxLongitude)
         {
             await using var conn = await GetConnection();
 
@@ -33,7 +34,8 @@ namespace TrafficForm.Adapter
             command.Parameters.AddWithValue("maxLongitude", maxLongitude);
             command.Parameters.AddWithValue("highwayNo", highwayNo);
             await using var reader = await command.ExecuteReaderAsync();
-            Dictionary<string, Tuple<double, double>> vdsLoc = new Dictionary<string, Tuple<double, double>>();
+            Dictionary<string, Tuple<double, double>> vdsLoc =
+                new Dictionary<string, Tuple<double, double>>(StringComparer.Ordinal);
             while(await reader.ReadAsync())
             {
                 string vdsId = reader.GetString(0);
@@ -47,14 +49,15 @@ namespace TrafficForm.Adapter
             return vdsLoc;
         }
 
-        internal async Task<Dictionary<string, List<Location>>> findResponsibilitySegments(int highwayNo, IEnumerable<string> vdsIds)
+        public async Task<Dictionary<string, List<Location>>> findResponsibilitySegments(int highwayNo, IEnumerable<string> vdsIds)
         {
             string[] targetVdsIds = vdsIds
                 .Where(vdsId => !string.IsNullOrWhiteSpace(vdsId))
                 .Distinct()
                 .ToArray();
 
-            Dictionary<string, List<Location>> segments = new Dictionary<string, List<Location>>();
+            Dictionary<string, List<Location>> segments =
+                new Dictionary<string, List<Location>>(StringComparer.Ordinal);
             if (targetVdsIds.Length == 0)
             {
                 return segments;
@@ -120,7 +123,7 @@ namespace TrafficForm.Adapter
             return segments;
         }
 
-        internal async Task<List<Location>> findAllVdsLoc()
+        public async Task<List<Location>> findAllVdsLoc()
         {
             await using var conn = await GetConnection();
 
