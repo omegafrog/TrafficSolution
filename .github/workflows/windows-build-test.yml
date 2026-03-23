@@ -30,6 +30,32 @@ jobs:
           dotnet build TrafficSolution.slnx -c Release 2>&1 | Tee-Object -FilePath .sisyphus/evidence/task-6-build-test-windows.txt
           "exitCode=$LASTEXITCODE" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Smoke run WinForms app (start/stop)
+        id: app_smoke
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $logPath = ".sisyphus/evidence/task-6-app-smoke-windows.txt"
+          "Start: $(Get-Date -Format o)" | Out-File -FilePath $logPath
+
+          $exe = Join-Path $PWD "TrafficForm\bin\Release\net10.0-windows\TrafficForm.exe"
+          "Exe: $exe" | Out-File -FilePath $logPath -Append
+
+          $proc = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 5
+
+          if ($proc.HasExited)
+          {
+            "ExitedEarly: true" | Out-File -FilePath $logPath -Append
+            "ExitCode: $($proc.ExitCode)" | Out-File -FilePath $logPath -Append
+            "exitCode=1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+
+          Stop-Process -Id $proc.Id -Force
+          "ExitedEarly: false" | Out-File -FilePath $logPath -Append
+          "exitCode=0" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Run unit tests
         id: test
         continue-on-error: true
@@ -45,6 +71,7 @@ jobs:
           name: task-6-build-test-windows
           path: |
             .sisyphus/evidence/task-6-build-test-windows.txt
+            .sisyphus/evidence/task-6-app-smoke-windows.txt
             .sisyphus/evidence/task-6-test-windows.txt
 
       - name: Fail job if build or test failed
@@ -52,6 +79,8 @@ jobs:
         shell: pwsh
         run: |
           $buildExit = [int]"${{ steps.build.outputs.exitCode }}"
+          $smokeExit = [int]"${{ steps.app_smoke.outputs.exitCode }}"
           $testExit = [int]"${{ steps.test.outputs.exitCode }}"
           if ($buildExit -ne 0) { exit $buildExit }
+          if ($smokeExit -ne 0) { exit $smokeExit }
           if ($testExit -ne 0) { exit $testExit }
