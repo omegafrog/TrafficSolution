@@ -2,6 +2,9 @@ name: Windows Build And Test
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - vds-caching
 
 jobs:
   build-test:
