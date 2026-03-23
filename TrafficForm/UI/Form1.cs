@@ -17,6 +17,8 @@ namespace TrafficForm
         private readonly Dictionary<string, int> _latestVdsHighwayNumberById = new Dictionary<string, int>(StringComparer.Ordinal);
         private readonly List<int> _latestTrafficHighwayNumbers = new List<int>();
         private int _fixedLeftPanelWidth;
+        private const int FixedRightPanelWidth = 520;
+        private const int ReducedRightPanelWidth = 320;
         private HighwayListControl? _selectedControl;
         private string? _selectedTrafficVdsId;
         private UpdateSelectedPosTrafficInfoCommand? _latestTrafficSelectionCommand;
@@ -723,6 +725,7 @@ namespace TrafficForm
             }
 
             detailPanelOpen = true;
+            detailPanelWidth = ReducedRightPanelWidth;
             SetRightPanelContentMode(RightPanelContentMode.Results);
             EnsureRightPanelVisible();
 
@@ -793,7 +796,7 @@ namespace TrafficForm
             ResizeRightPanelCards();
             UpdateSearchSummary(results.Count, _controlMap.Count);
 
-            //highwaylistContainer.SplitterDistance = highwaylistContainer.Width - detailPanelWidth;
+            highwaylistContainer.SplitterDistance = highwaylistContainer.Width - detailPanelWidth;
         }
 
         private int CalculateRightPanelCardWidth()
@@ -818,13 +821,6 @@ namespace TrafficForm
             {
                 highwaylistContainer.Panel2Collapsed = false;
             }
-            else if (highwaylistContainer.Panel2.Width > 0)
-            {
-                detailPanelWidth = Math.Max(220, highwaylistContainer.Panel2.Width);
-                LockLeftPanelWidth();
-                UpdateRightPanelToggleButtonText();
-                return;
-            }
 
             int containerWidth = highwaylistContainer.ClientSize.Width;
             if (containerWidth <= 0)
@@ -846,10 +842,7 @@ namespace TrafficForm
                 highwaylistContainer.SplitterDistance = boundedSplitterDistance;
             }
 
-            if (highwaylistContainer.Panel2.Width > 0)
-            {
-                detailPanelWidth = Math.Max(220, highwaylistContainer.Panel2.Width);
-            }
+            // Preserve detailPanelWidth set by caller (ReducedRightPanelWidth or FixedRightPanelWidth)
 
             LockLeftPanelWidth();
             UpdateRightPanelToggleButtonText();

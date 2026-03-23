@@ -281,6 +281,7 @@ public partial class Form1
             _favoritesPanel.Visible = false;
             _searchSummaryPanel.Visible = true;
             flowLayoutPanel1.Visible = true;
+            detailPanelWidth = ReducedRightPanelWidth;
         }
         else
         {
@@ -289,6 +290,7 @@ public partial class Form1
             flowLayoutPanel1.Visible = false;
             RenderFavoritesCurrentMode();
             detailPanelOpen = true;
+            detailPanelWidth = FixedRightPanelWidth;
             EnsureRightPanelVisible();
         }
 
@@ -336,6 +338,10 @@ public partial class Form1
         if (highwaylistContainer.Panel2Collapsed)
         {
             detailPanelOpen = true;
+            if (_rightPanelContentMode != RightPanelContentMode.Results)
+            {
+                detailPanelWidth = FixedRightPanelWidth;
+            }
             EnsureRightPanelVisible();
         }
         else

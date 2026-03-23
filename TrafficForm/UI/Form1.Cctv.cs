@@ -299,6 +299,7 @@ namespace TrafficForm
             }
 
             detailPanelOpen = true;
+            detailPanelWidth = ReducedRightPanelWidth;
             SetRightPanelContentMode(RightPanelContentMode.Results);
             EnsureRightPanelVisible();
 
