@@ -1,0 +1,42 @@
+name: Windows Build And Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Create evidence directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path .sisyphus/evidence
+
+      - name: Build solution
+        shell: pwsh
+        run: |
+          dotnet build TrafficSolution.slnx -c Release 2>&1 | Tee-Object -FilePath .sisyphus/evidence/task-6-build-test-windows.txt
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) { exit $exitCode }
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          dotnet test TestProject1/TrafficTestProject.csproj -c Release 2>&1 | Tee-Object -FilePath .sisyphus/evidence/task-6-test-windows.txt
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) { exit $exitCode }
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-6-build-test-windows
+          path: |
+            .sisyphus/evidence/task-6-build-test-windows.txt
+            .sisyphus/evidence/task-6-test-windows.txt
