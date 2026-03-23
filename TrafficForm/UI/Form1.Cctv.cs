@@ -116,6 +116,8 @@ namespace TrafficForm
                 filterPanel.Controls.Add(_rightPanelHeaderPanel);
             }
 
+            EnsureLeftFavoritesPanelAttached();
+
             UpdateLeftPanelModeLayout();
 
             filterPanel.ResumeLayout();
@@ -131,6 +133,7 @@ namespace TrafficForm
         {
             int availableWidth = Math.Max(120, filterPanel.ClientSize.Width - filterPanel.Padding.Horizontal - 1);
             _rightPanelHeaderPanel.Width = availableWidth;
+            UpdateLeftPanelTopFavoritesLayout();
 
             int contentWidth = Math.Max(80, availableWidth - _rightPanelHeaderPanel.Padding.Horizontal - 2);
             _rightPanelModeLayout.MaximumSize = new Size(contentWidth, 0);
@@ -296,6 +299,7 @@ namespace TrafficForm
             }
 
             detailPanelOpen = true;
+            SetRightPanelContentMode(RightPanelContentMode.Results);
             EnsureRightPanelVisible();
 
             SelectTrafficControl(null);
@@ -382,6 +386,7 @@ namespace TrafficForm
 
             _selectedControl?.ClearHighlight();
             _selectedControl = control;
+            _selectedTrafficVdsId = control != null ? FindVdsIdByControl(control) : null;
 
             if (_selectedControl != null && flowLayoutPanel1.Controls.Contains(_selectedControl))
             {

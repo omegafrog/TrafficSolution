@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TrafficForm.Port;
 using TrafficForm.Adapter;
 using System.Diagnostics;
-using System.Threading;
 
 namespace TrafficForm
 {
@@ -48,9 +47,11 @@ namespace TrafficForm
             services.AddTransient<Form1>();
             services.AddSingleton<RequestTrafficByPosService>();
             services.AddSingleton<RequestCctvByPosService>();
+            services.AddSingleton<FavoriteService>();
             services.AddSingleton<IOpenStreetQueryPort, OpenStreetQueryAdapter>();
             services.AddSingleton<IPublicTrafficApiPort, PublicTrafficApiAdapter>();
             services.AddSingleton<ICctvApiPort, CctvApiAdapter>();
+            services.AddSingleton<IFavoriteStorePort, JsonFavoriteStoreAdapter>();
             services.AddSingleton<VdsRepository>();
             services.AddSingleton<OpenStreetDbRepository>();
             services.AddSingleton<HttpClient>();
