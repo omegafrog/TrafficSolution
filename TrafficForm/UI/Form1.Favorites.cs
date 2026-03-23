@@ -282,6 +282,7 @@ public partial class Form1
             _searchSummaryPanel.Visible = true;
             flowLayoutPanel1.Visible = true;
             detailPanelWidth = ReducedRightPanelWidth;
+            EnsureRightPanelVisible();
         }
         else
         {
