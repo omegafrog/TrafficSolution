@@ -6,6 +6,7 @@ using TrafficForm.Domain;
 
 namespace TestProject1
 {
+    [DoNotParallelize]
     [TestClass]
     public sealed class ItsVdsTrafficSnapshotSourceAdapterTest
     {
