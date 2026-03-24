@@ -12,8 +12,16 @@ namespace TrafficForm
     public partial class Form1 : Form
     {
         private readonly RequestTrafficByPosService? _requestTrafficByPosService;
+        private readonly FavoriteService? _favoriteService;
         private readonly Dictionary<string, HighwayListControl> _controlMap = new Dictionary<string, HighwayListControl>();
+        private readonly Dictionary<string, int> _latestVdsHighwayNumberById = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly List<int> _latestTrafficHighwayNumbers = new List<int>();
+        private int _fixedLeftPanelWidth;
+        private const int FixedRightPanelWidth = 520;
+        private const int ReducedRightPanelWidth = 320;
         private HighwayListControl? _selectedControl;
+        private string? _selectedTrafficVdsId;
+        private UpdateSelectedPosTrafficInfoCommand? _latestTrafficSelectionCommand;
         private readonly Panel _searchSummaryPanel = new Panel();
         private readonly Label _searchSummaryTitleLabel = new Label();
         private readonly Label _searchSummaryCountLabel = new Label();
@@ -64,20 +72,27 @@ namespace TrafficForm
             InitializeMapModeUi();
             InitializeRightPanelModeUi();
             InitializeHighwayListPanelUi();
+            InitializeFavoritesPanelUi();
             SetStatusMessage("모드를 선택하세요.", false);
         }
 
-        public Form1(RequestTrafficByPosService requestTrafficByPosService, RequestCctvByPosService requestCctvByPosService)
+        public Form1(
+            RequestTrafficByPosService requestTrafficByPosService,
+            RequestCctvByPosService requestCctvByPosService,
+            FavoriteService favoriteService)
         {
             InitializeComponent();
             _requestTrafficByPosService = requestTrafficByPosService;
             _requestCctvByPosService = requestCctvByPosService;
+            _favoriteService = favoriteService;
             InitializeStatusStripUi();
             InitializeMapModeUi();
             InitializeRightPanelModeUi();
             InitializeHighwayListPanelUi();
+            InitializeFavoritesPanelUi();
             SetStatusMessage("모드를 선택하세요.", false);
             InitializeWebView();
+            _ = LoadFavoritesFromStoreAsync();
             //list펴기ToolStripMenuItem.Click += (s, e) => ShowHighwayPanel();
             list접기ToolStripMenuItem.Click += (s, e) => HideHighwayPanel();
         }
@@ -144,11 +159,26 @@ namespace TrafficForm
             _mapInteractionModeComboBox.SelectedItem = DefaultMapModeText;
 
             toolStrip1.Items.Add(_mapInteractionModeComboBox);
+            InitializeToolboxFavoritesTabs();
         }
 
         private void InitializeHighwayListPanelUi()
         {
             Color panelBackground = Color.FromArgb(243, 246, 251);
+
+            highwaylistContainer.IsSplitterFixed = true;
+            splitContainer1.FixedPanel = FixedPanel.Panel1;
+            splitContainer1.IsSplitterFixed = true;
+
+            if (_fixedLeftPanelWidth <= 0)
+            {
+                _fixedLeftPanelWidth = Math.Max(140, splitContainer1.SplitterDistance);
+            }
+
+            splitContainer1.Panel1MinSize = _fixedLeftPanelWidth;
+            splitContainer1.SizeChanged -= SplitContainer1_SizeChanged;
+            splitContainer1.SizeChanged += SplitContainer1_SizeChanged;
+            LockLeftPanelWidth();
 
             highwaylistContainer.Panel2.BackColor = panelBackground;
 
@@ -160,9 +190,6 @@ namespace TrafficForm
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.SizeChanged -= FlowLayoutPanel1_SizeChanged;
             flowLayoutPanel1.SizeChanged += FlowLayoutPanel1_SizeChanged;
-
-            highwaylistContainer.SplitterMoved -= HighwaylistContainer_SplitterMoved;
-            highwaylistContainer.SplitterMoved += HighwaylistContainer_SplitterMoved;
 
             _searchSummaryPanel.BackColor = Color.FromArgb(227, 236, 250);
             _searchSummaryPanel.BorderStyle = BorderStyle.FixedSingle;
@@ -212,6 +239,39 @@ namespace TrafficForm
 
             highwaylistContainer.Panel2.PerformLayout();
             UpdateSearchSummary(0, 0);
+            highwaylistContainer.Panel2Collapsed = true;
+            detailPanelOpen = false;
+            InitializeRightEdgeToggleButton();
+            UpdateRightPanelToggleButtonText();
+        }
+
+        private void SplitContainer1_SizeChanged(object? sender, EventArgs e)
+        {
+            LockLeftPanelWidth();
+        }
+
+        private void LockLeftPanelWidth()
+        {
+            if (_fixedLeftPanelWidth <= 0 || splitContainer1.Width <= 0)
+            {
+                return;
+            }
+
+            int minimumLeft = Math.Max(120, splitContainer1.Panel1MinSize);
+            int maximumLeft = Math.Max(
+                minimumLeft,
+                splitContainer1.Width - splitContainer1.Panel2MinSize - splitContainer1.SplitterWidth);
+
+            int targetLeft = Math.Min(_fixedLeftPanelWidth, maximumLeft);
+            if (targetLeft < minimumLeft)
+            {
+                targetLeft = minimumLeft;
+            }
+
+            if (targetLeft != splitContainer1.SplitterDistance)
+            {
+                splitContainer1.SplitterDistance = targetLeft;
+            }
         }
 
         private async void MapInteractionModeComboBox_SelectedIndexChanged(object? sender, EventArgs e)
@@ -326,6 +386,41 @@ namespace TrafficForm
                 function setPosSelectionMode(enabled) {
                     isPosSelectionMode = Boolean(enabled);
                     applyMapCursor();
+                }
+
+                function getMapViewState() {
+                    const bounds = map.getBounds();
+                    const center = map.getCenter();
+
+                    return {
+                        lat: center.lat,
+                        lon: center.lng,
+                        zoom: map.getZoom(),
+                        minLon: bounds.getWest(),
+                        minLat: bounds.getSouth(),
+                        maxLon: bounds.getEast(),
+                        maxLat: bounds.getNorth()
+                    };
+                }
+
+                function setMapViewFromFavorite(lat, lon, zoom, minLon, minLat, maxLon, maxLat) {
+                    const hasBounds =
+                        Number.isFinite(minLon)
+                        && Number.isFinite(minLat)
+                        && Number.isFinite(maxLon)
+                        && Number.isFinite(maxLat);
+
+                    if (hasBounds) {
+                        map.fitBounds([[minLat, minLon], [maxLat, maxLon]]);
+                    }
+
+                    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+                        if (Number.isFinite(zoom)) {
+                            map.setView([lat, lon], zoom);
+                        } else {
+                            map.panTo([lat, lon]);
+                        }
+                    }
                 }
 
                 applyMapCursor();
@@ -630,6 +725,8 @@ namespace TrafficForm
             }
 
             detailPanelOpen = true;
+            detailPanelWidth = ReducedRightPanelWidth;
+            SetRightPanelContentMode(RightPanelContentMode.Results);
             EnsureRightPanelVisible();
 
             SelectTrafficControl(null);
@@ -699,7 +796,7 @@ namespace TrafficForm
             ResizeRightPanelCards();
             UpdateSearchSummary(results.Count, _controlMap.Count);
 
-            //highwaylistContainer.SplitterDistance = highwaylistContainer.Width - detailPanelWidth;
+            highwaylistContainer.SplitterDistance = highwaylistContainer.Width - detailPanelWidth;
         }
 
         private int CalculateRightPanelCardWidth()
@@ -724,11 +821,6 @@ namespace TrafficForm
             {
                 highwaylistContainer.Panel2Collapsed = false;
             }
-            else if (highwaylistContainer.Panel2.Width > 0)
-            {
-                detailPanelWidth = Math.Max(220, highwaylistContainer.Panel2.Width);
-                return;
-            }
 
             int containerWidth = highwaylistContainer.ClientSize.Width;
             if (containerWidth <= 0)
@@ -750,10 +842,10 @@ namespace TrafficForm
                 highwaylistContainer.SplitterDistance = boundedSplitterDistance;
             }
 
-            if (highwaylistContainer.Panel2.Width > 0)
-            {
-                detailPanelWidth = Math.Max(220, highwaylistContainer.Panel2.Width);
-            }
+            // Preserve detailPanelWidth set by caller (ReducedRightPanelWidth or FixedRightPanelWidth)
+
+            LockLeftPanelWidth();
+            UpdateRightPanelToggleButtonText();
         }
 
         private void HighwaylistContainer_SplitterMoved(object? sender, SplitterEventArgs e)
@@ -773,6 +865,7 @@ namespace TrafficForm
             SelectCctvControl(null);
             detailPanelOpen = false;
             highwaylistContainer.Panel2Collapsed = true;
+            UpdateRightPanelToggleButtonText();
 
         }
 
@@ -958,6 +1051,14 @@ namespace TrafficForm
                 return;
             }
 
+            _latestTrafficSelectionCommand = new UpdateSelectedPosTrafficInfoCommand(data.Latitude, data.Longitude)
+            {
+                MinLongitude = data.MinLongitude,
+                MinLatitude = data.MinLatitude,
+                MaxLongitude = data.MaxLongitude,
+                MaxLatitude = data.MaxLatitude
+            };
+
             int requestVersion = System.Threading.Interlocked.Increment(ref _trafficLookupRequestVersion);
 
             _isTrafficLookupInProgress = true;
@@ -969,6 +1070,7 @@ namespace TrafficForm
             {
                 List<VdsTrafficResult> results = new List<VdsTrafficResult>();
                 Dictionary<int, List<VdsTrafficResult>> highWays = await _requestTrafficByPosService.GetAdjacentHighWays(data);
+                CacheTrafficLookupContext(highWays, data);
                 SetStatusMessage("조회 결과를 정리 중입니다...", true);
 
                 foreach (int highwayId in highWays.Keys)
@@ -998,6 +1100,45 @@ namespace TrafficForm
                 _rightPanelModeComboBox.Enabled = true;
             }
 
+        }
+
+        private void CacheTrafficLookupContext(
+            Dictionary<int, List<VdsTrafficResult>> trafficByHighway,
+            UpdateSelectedPosTrafficInfoCommand command)
+        {
+            _latestTrafficHighwayNumbers.Clear();
+            _latestVdsHighwayNumberById.Clear();
+
+            foreach ((int highwayNo, List<VdsTrafficResult> trafficResults) in trafficByHighway.OrderBy(item => item.Key))
+            {
+                _latestTrafficHighwayNumbers.Add(highwayNo);
+
+                foreach (VdsTrafficResult trafficResult in trafficResults)
+                {
+                    _latestVdsHighwayNumberById[trafficResult.VdsId] = highwayNo;
+                }
+            }
+
+            _latestTrafficSelectionCommand = new UpdateSelectedPosTrafficInfoCommand(command.Latitude, command.Longitude)
+            {
+                MinLongitude = command.MinLongitude,
+                MinLatitude = command.MinLatitude,
+                MaxLongitude = command.MaxLongitude,
+                MaxLatitude = command.MaxLatitude
+            };
+        }
+
+        private string? FindVdsIdByControl(HighwayListControl control)
+        {
+            foreach ((string vdsId, HighwayListControl mappedControl) in _controlMap)
+            {
+                if (ReferenceEquals(mappedControl, control))
+                {
+                    return vdsId;
+                }
+            }
+
+            return null;
         }
 
         private void DumpControls(Control parent, int depth = 0)

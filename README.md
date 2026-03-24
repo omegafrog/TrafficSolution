@@ -125,6 +125,7 @@ TrafficSolution/
 ## 유스케이스 상세 문서
 
 - 상세 문서: [`docs/usecase-spec.md`](docs/usecase-spec.md)
+- 즐겨찾기 기능 설계(Use Case + Event Storming): [`docs/favorites-usecase-eventstorming.md`](docs/favorites-usecase-eventstorming.md)
 - 포함 내용:
   - 식별자별 클라이언트 기준 기능 설명
   - 데이터 흐름 Sequence Diagram (PlantUML)
