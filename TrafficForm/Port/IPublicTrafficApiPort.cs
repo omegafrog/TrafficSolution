@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using TrafficForm.Domain;
+﻿using TrafficForm.Domain;
 
 namespace TrafficForm.Port
 {

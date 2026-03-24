@@ -30,7 +30,14 @@ namespace TrafficForm
             services.AddSingleton<RequestCctvByPosService>();
             services.AddSingleton<FavoriteService>();
             services.AddSingleton<IOpenStreetQueryPort, OpenStreetQueryAdapter>();
-            services.AddSingleton<IPublicTrafficApiPort, PublicTrafficApiAdapter>();
+            services.AddSingleton<VdsTrafficSnapshotStore>();
+            services.AddSingleton<IVdsTrafficSnapshotSourcePort, ItsVdsTrafficSnapshotSourceAdapter>();
+            services.AddSingleton<VdsTrafficSnapshotRefresher>();
+            services.AddSingleton<IVdsTrafficSnapshotRefresherPort>(
+                provider => provider.GetRequiredService<VdsTrafficSnapshotRefresher>());
+            services.AddSingleton<IVdsGeoRepositoryPort>(
+                provider => provider.GetRequiredService<VdsRepository>());
+            services.AddSingleton<IPublicTrafficApiPort, CachedPublicTrafficApiAdapter>();
             services.AddSingleton<ICctvApiPort, CctvApiAdapter>();
             services.AddSingleton<IFavoriteStorePort, JsonFavoriteStoreAdapter>();
             services.AddSingleton<VdsRepository>();
@@ -39,6 +46,8 @@ namespace TrafficForm
             services.AddDbContext<TrafficDbContext>(options =>
                 options.UseNpgsql("Host=localhost;Port=5432;Database=gis;Username=renderer;Password=renderer"));
             using var provider = services.BuildServiceProvider();
+            VdsTrafficSnapshotRefresher refresher = provider.GetRequiredService<VdsTrafficSnapshotRefresher>();
+            refresher.Start();
 
             using (var scope = provider.CreateScope())
             {
@@ -57,7 +66,14 @@ namespace TrafficForm
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Application.Run(provider.GetRequiredService<Form1>());
+            try
+            {
+                Application.Run(provider.GetRequiredService<Form1>());
+            }
+            finally
+            {
+                refresher.StopAsync().GetAwaiter().GetResult();
+            }
         }
 
         private static void RegisterGlobalExceptionHandlers()

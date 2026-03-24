@@ -17,6 +17,44 @@
 - Domain: `TrafficForm/Domain/*.cs` (도메인 모델/정책)
 - Infra: `TrafficForm/osm-local/compose.yaml` (OSM 타일/Geo Postgres)
 
+
+### VDS 트래픽 스냅샷 캐시
+
+- 문제: ITS VDS `vdsInfo` API는 필터 없이 전 VDS 응답을 내려주어, UI 요청마다 HTTP+대용량 JSON 파싱이 반복되는 병목이 발생합니다.
+- 해결: 백그라운드에서 주기적으로 스냅샷을 갱신하고, 조회는 인메모리 캐시에서 수행합니다.
+
+- 스냅샷 저장소 (`VdsTrafficSnapshotStore`)
+  - `TrafficForm/Adapter/VdsTrafficSnapshotStore.cs`
+  - `Volatile.Read` + `Interlocked.Exchange` 기반 원자적 스왑
+  - `GetCurrent()`: 최신 스냅샷을 메모리 배리어로 읽기
+  - `Swap(VdsTrafficSnapshot next)`: 원자적 스왑
+
+- 스냅샷 소스 (`IVdsTrafficSnapshotSourcePort`)
+  - `TrafficForm/Port/IVdsTrafficSnapshotSourcePort.cs`
+  - `TrafficForm/Adapter/ItsVdsTrafficSnapshotSourceAdapter.cs`
+  - ITS API에서 VDS 관측치를 가져와 스냅샷으로 변환
+  - 중복 VDS ID가 있으면 최신 수집 날짜를 가진 관측치만 보존
+
+- 스냅샷 리프레셔 (`IVdsTrafficSnapshotRefresherPort`)
+  - `TrafficForm/Port/IVdsTrafficSnapshotRefresherPort.cs`
+  - `TrafficForm/Adapter/VdsTrafficSnapshotRefresher.cs`
+  - `PeriodicTimer` 기반 2분 주기 갱신
+  - Overlap guard: `Interlocked.CompareExchange`로 중복 refresh 방지
+  - 실패 시 마지막 성공 스냅샷 유지 (데이터 손실 방지)
+
+- 캐시 기반 조회 어댑터 (`CachedPublicTrafficApiAdapter`)
+  - `TrafficForm/Adapter/CachedPublicTrafficApiAdapter.cs`
+  - `IPublicTrafficApiPort.GetTrafficResult`를 스냅샷 기반으로 구현
+  - 캐시 히트 시: API 호출 없이 O(1)로 스냅샷에서 조회
+  - 캐시 미스 시 (cold-start): 한 번만 API 호출 후 캐시 저장
+
+- 동시성 해결 방법
+  - 전통적인 `lock` 대신 **`Interlocked`** 및 **`Volatile`** API 사용
+  - 이유: WinForms UI 스레드에서 네트워크 작업이 blocking되지 않도록
+  - `Volatile.Read`: 다른 스레드가 작성한 최신 값을 반드시 읽도록 보장
+  - `Interlocked.Exchange`: 스왑 연산이 원자적으로 수행됨을 보장
+  - 불변 스냅샷: `VdsTrafficSnapshot`은 생성 후 변경 불가능하므로 스레드 안전
+
 ### 아키텍처 다이어그램 (PlantUML)
 
 ![Rendered diagram 1](docs/images/plantuml/readme-01.svg)
