@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TrafficForm.Port;
 using TrafficForm.Adapter;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace TrafficForm
 {
@@ -16,29 +17,9 @@ namespace TrafficForm
         [STAThread]
         static void Main()
         {
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
-            ApplicationConfiguration.Initialize();
+           
 
             Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-
-            Application.ThreadException += (s, e) =>
-            {
-                File.WriteAllText("thread-exception.log", e.Exception.ToString());
-                MessageBox.Show(e.Exception.ToString(), "UI Thread Exception");
-            };
-
-            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
-            {
-                File.WriteAllText("unhandled-exception.log", e.ExceptionObject?.ToString() ?? "null");
-            };
-
-            TaskScheduler.UnobservedTaskException += (s, e) =>
-            {
-                File.WriteAllText("task-exception.log", e.Exception.ToString());
-                e.SetObserved();
-            };
-
 
 
             RegisterGlobalExceptionHandlers();
@@ -55,8 +36,27 @@ namespace TrafficForm
             services.AddSingleton<VdsRepository>();
             services.AddSingleton<OpenStreetDbRepository>();
             services.AddSingleton<HttpClient>();
+            services.AddDbContext<TrafficDbContext>(options =>
+                options.UseNpgsql("Host=localhost;Port=5432;Database=gis;Username=renderer;Password=renderer"));
             using var provider = services.BuildServiceProvider();
 
+            using (var scope = provider.CreateScope())
+            {
+                try
+                {
+                    Debug.WriteLine("db context check start.");
+                    var context = scope.ServiceProvider.GetRequiredService<TrafficDbContext>();
+                    bool created = context.Database.EnsureCreated();
+                }catch(Exception ex)
+                {
+                    Debug.WriteLine($"Exception:{ex.Message}");
+                }
+                
+            }
+
+            // To customize application configuration such as set high DPI settings or default font,
+            // see https://aka.ms/applicationconfiguration.
+            ApplicationConfiguration.Initialize();
             Application.Run(provider.GetRequiredService<Form1>());
         }
 
