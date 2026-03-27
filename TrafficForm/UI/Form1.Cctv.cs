@@ -25,6 +25,7 @@ namespace TrafficForm
         private readonly Dictionary<string, CctvListControl> _cctvControlMap = new Dictionary<string, CctvListControl>(StringComparer.Ordinal);
         private readonly List<VdsTrafficResult> _latestTrafficResults = new List<VdsTrafficResult>();
         private readonly List<CctvInfo> _latestCctvResults = new List<CctvInfo>();
+        private UpdateSelectedPosCctvInfoCommand? _latestCctvSelectionCommand;
 
         private readonly Panel _rightPanelHeaderPanel = new Panel();
         private readonly TableLayoutPanel _rightPanelModeLayout = new TableLayoutPanel();
@@ -187,15 +188,33 @@ namespace TrafficForm
 
             _rightPanelMode = nextMode;
             UpdateRightPanelModeHint();
-            await RenderActiveRightPanelModeAsync();
 
-            if (_rightPanelMode == RightPanelMode.Cctv)
+            // Re-query data for the new mode if we have a previous command
+            bool reQueryTriggered = false;
+            if (nextMode == RightPanelMode.Cctv && _latestCctvSelectionCommand != null && !_isCctvLookupInProgress)
             {
-                SetStatusMessage("패널 모드가 CCTV 모드로 전환되었습니다.", false);
+                SetStatusMessage("CCTV 모드로 전환 중입니다. 현재 고속도로의 CCTV를 조회합니다...", true);
+                await UpdateSelectedPosCctvInfoAsync(_latestCctvSelectionCommand, "모드 전환");
+                reQueryTriggered = true;
             }
-            else
+            else if (nextMode == RightPanelMode.Traffic && _latestTrafficSelectionCommand != null && !_isTrafficLookupInProgress)
             {
-                SetStatusMessage("패널 모드가 혼잡도 모드로 전환되었습니다.", false);
+                SetStatusMessage("혼잡도 모드로 전환 중입니다. 현재 고속도로의 혼잡도를 조회합니다...", true);
+                await UpdateSelectedPosTrafficInfoAsync(_latestTrafficSelectionCommand, "모드 전환");
+                reQueryTriggered = true;
+            }
+
+            if (!reQueryTriggered)
+            {
+                await RenderActiveRightPanelModeAsync();
+                if (_rightPanelMode == RightPanelMode.Cctv)
+                {
+                    SetStatusMessage("패널 모드가 CCTV 모드로 전환되었습니다.", false);
+                }
+                else
+                {
+                    SetStatusMessage("패널 모드가 혼잡도 모드로 전환되었습니다.", false);
+                }
             }
         }
 
@@ -256,12 +275,24 @@ namespace TrafficForm
                 return;
             }
 
+            await UpdateSelectedPosCctvInfoAsync(data, "지도 선택");
+        }
+
+        private async Task UpdateSelectedPosCctvInfoAsync(UpdateSelectedPosCctvInfoCommand data, string trigger)
+        {
+            if (_requestCctvByPosService == null)
+            {
+                SetStatusMessage("CCTV 조회 서비스가 초기화되지 않았습니다.", false);
+                return;
+            }
+
+            _latestCctvSelectionCommand = data;
             int requestVersion = System.Threading.Interlocked.Increment(ref _cctvLookupRequestVersion);
 
             _isCctvLookupInProgress = true;
             _mapInteractionModeComboBox.Enabled = false;
             _rightPanelModeComboBox.Enabled = false;
-            SetStatusMessage("좌표를 확인했습니다. 주변 고속도로의 CCTV를 조회 중입니다...", true);
+            SetStatusMessage($"{trigger} 좌표를 확인했습니다. 주변 고속도로의 CCTV를 조회 중입니다...", true);
 
             try
             {
