@@ -68,6 +68,7 @@ namespace TrafficForm
         public Form1()
         {
             InitializeComponent();
+            InitializeDataMenuActions();
             InitializeStatusStripUi();
             InitializeMapModeUi();
             InitializeRightPanelModeUi();
@@ -82,6 +83,7 @@ namespace TrafficForm
             FavoriteService favoriteService)
         {
             InitializeComponent();
+            InitializeDataMenuActions();
             _requestTrafficByPosService = requestTrafficByPosService;
             _requestCctvByPosService = requestCctvByPosService;
             _favoriteService = favoriteService;
@@ -105,6 +107,47 @@ namespace TrafficForm
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void InitializeDataMenuActions()
+        {
+            새로고침ToolStripMenuItem.Click -= 새로고침ToolStripMenuItem_Click;
+            새로고침ToolStripMenuItem.Click += 새로고침ToolStripMenuItem_Click;
+        }
+
+        private async void 새로고침ToolStripMenuItem_Click(object? sender, EventArgs e)
+        {
+            await RefreshTrafficDataFromLatestSelectionAsync();
+        }
+
+        private async Task RefreshTrafficDataFromLatestSelectionAsync()
+        {
+            if (_isTrafficLookupInProgress)
+            {
+                SetStatusMessage("이미 혼잡도 조회 중입니다. 잠시만 기다려주세요.", true);
+                return;
+            }
+
+            if (_latestTrafficSelectionCommand == null)
+            {
+                SetStatusMessage("새로고침할 VDS 조회 이력이 없습니다. 지도에서 좌표를 먼저 선택하세요.", false);
+                return;
+            }
+
+            if (_rightPanelMode != RightPanelMode.Traffic)
+            {
+                await SetRightPanelModeAsync(RightPanelMode.Traffic);
+            }
+
+            UpdateSelectedPosTrafficInfoCommand command = new(_latestTrafficSelectionCommand.Latitude, _latestTrafficSelectionCommand.Longitude)
+            {
+                MinLongitude = _latestTrafficSelectionCommand.MinLongitude,
+                MinLatitude = _latestTrafficSelectionCommand.MinLatitude,
+                MaxLongitude = _latestTrafficSelectionCommand.MaxLongitude,
+                MaxLatitude = _latestTrafficSelectionCommand.MaxLatitude
+            };
+
+            await UpdateSelectedPosTrafficInfoAsync(command, "새로고침");
         }
 
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e)
@@ -1036,18 +1079,23 @@ namespace TrafficForm
 
         private async Task UpdateSelectedPosTrafficInfoFromMessage(string message)
         {
-            if (_requestTrafficByPosService == null)
-            {
-                SetStatusMessage("혼잡도 조회 서비스가 초기화되지 않았습니다.", false);
-                return;
-            }
-
             string normalized = NormalizeSelectionMessage(message);
             UpdateSelectedPosTrafficInfoCommand? data = JsonSerializer.Deserialize<UpdateSelectedPosTrafficInfoCommand>(normalized);
 
             if (data == null)
             {
                 SetStatusMessage("조회 실패: 좌표 정보를 해석할 수 없습니다.", false);
+                return;
+            }
+
+            await UpdateSelectedPosTrafficInfoAsync(data, "지도 선택");
+        }
+
+        private async Task UpdateSelectedPosTrafficInfoAsync(UpdateSelectedPosTrafficInfoCommand data, string trigger)
+        {
+            if (_requestTrafficByPosService == null)
+            {
+                SetStatusMessage("혼잡도 조회 서비스가 초기화되지 않았습니다.", false);
                 return;
             }
 
@@ -1064,7 +1112,7 @@ namespace TrafficForm
             _isTrafficLookupInProgress = true;
             _mapInteractionModeComboBox.Enabled = false;
             _rightPanelModeComboBox.Enabled = false;
-            SetStatusMessage("좌표를 확인했습니다. 주변 고속도로를 조회 중입니다...", true);
+            SetStatusMessage($"{trigger} 좌표를 확인했습니다. 주변 고속도로를 조회 중입니다...", true);
 
             try
             {
