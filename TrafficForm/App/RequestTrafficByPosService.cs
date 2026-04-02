@@ -29,20 +29,27 @@ namespace TrafficForm.App
         }
         public async Task<Dictionary<int, List<VdsTrafficResult>>> GetAdjacentHighWays(UpdateSelectedPosTrafficInfoCommand command)
         {
-            double adjacentDiff = 5.0;
+            CheckSelectedPoint(command);
+            command.NormalizeBounds();
+
             try
             {
                 Dictionary<int, HighWay> adjacentHighWays = await openStreetQueryPort.GetAdjacentHighWays(mapper.Invoke(command));
-                Dictionary<int, List<VdsTrafficResult>> result = new Dictionary<int, List<VdsTrafficResult>>();
-                foreach(var e in adjacentHighWays)
+                Dictionary<int, List<VdsTrafficResult>> result = await GetTrafficByHighwaysAsync(adjacentHighWays.Keys, command);
+
+                foreach (var e in adjacentHighWays)
                 {
-                    List<VdsTrafficResult> res = await GetTrafficResult(e.Key, command);
-                    result.Add(e.Key, [.. res.Select(res =>
+                    if (!result.TryGetValue(e.Key, out List<VdsTrafficResult>? trafficResults))
                     {
-                        res.Location.Name = e.Value.Name;
-                        return res;
-                    })]);
+                        continue;
+                    }
+
+                    foreach (VdsTrafficResult trafficResult in trafficResults)
+                    {
+                        trafficResult.Location.Name = e.Value.Name;
+                    }
                 }
+
                 return result;
             }
             catch (Exception ex)
@@ -51,6 +58,23 @@ namespace TrafficForm.App
                 throw new NotImplementedException("인접한 고속도로를 가져오는데 실패했습니다. 실패 콜백이 필요합니다.", ex);
             }
             
+        }
+
+        public async Task<Dictionary<int, List<VdsTrafficResult>>> GetTrafficByHighwaysAsync(
+            IEnumerable<int> highwayNumbers,
+            UpdateSelectedPosTrafficInfoCommand command)
+        {
+            CheckSelectedPoint(command);
+            command.NormalizeBounds();
+
+            Dictionary<int, List<VdsTrafficResult>> result = new Dictionary<int, List<VdsTrafficResult>>();
+            foreach (int highwayNo in highwayNumbers.Distinct())
+            {
+                List<VdsTrafficResult> trafficResults = await GetTrafficResult(highwayNo, command);
+                result[highwayNo] = trafficResults;
+            }
+
+            return result;
         }
 
         // 줌인한 박스 내부의 highwayNo에 해당하는 vds의 정보를 가져옴. 

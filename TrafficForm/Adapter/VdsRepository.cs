@@ -149,5 +149,51 @@ namespace TrafficForm.Adapter
             } 
             return locations;
         }
+
+        public async Task<IReadOnlyList<HighWay>> FindDistinctHighwaysInBoundsAsync(
+            double minLongitude,
+            double minLatitude,
+            double maxLongitude,
+            double maxLatitude)
+        {
+            await using var conn = await GetConnection();
+
+            string query = """
+                SELECT DISTINCT ON (v."노선번호")
+                    v."노선번호",
+                    COALESCE(NULLIF(TRIM(v."도로명"), ''), CONCAT(v."노선번호", '번 도로')) AS road_name
+                FROM vds v
+                JOIN vds_loc vl
+                  ON v."노선번호" = vl."노선번호"
+                 AND v."지점이정" = vl."이정"
+                WHERE vl."X좌표값" >= @minLatitude
+                  AND vl."X좌표값" <= @maxLatitude
+                  AND vl."Y좌표값" >= @minLongitude
+                  AND vl."Y좌표값" <= @maxLongitude
+                ORDER BY v."노선번호", road_name;
+                """;
+
+            NpgsqlCommand command = new NpgsqlCommand(query, conn);
+            command.Parameters.AddWithValue("minLongitude", minLongitude);
+            command.Parameters.AddWithValue("minLatitude", minLatitude);
+            command.Parameters.AddWithValue("maxLongitude", maxLongitude);
+            command.Parameters.AddWithValue("maxLatitude", maxLatitude);
+
+            List<HighWay> highways = new List<HighWay>();
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                int highwayNo = Convert.ToInt32(reader.GetValue(0));
+                string roadName = reader.IsDBNull(1) ? $"{highwayNo}번 도로" : reader.GetString(1);
+
+                highways.Add(new HighWay
+                {
+                    ReferenceNumber = highwayNo.ToString(),
+                    Name = roadName
+                });
+            }
+
+            return highways;
+        }
     }
 }
