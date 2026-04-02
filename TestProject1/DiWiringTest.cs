@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using TrafficForm.App;
 using TrafficForm.Adapter;
 using TrafficForm.Port;
 
@@ -15,6 +16,9 @@ namespace TestProject1
             IPublicTrafficApiPort trafficApi = provider.GetRequiredService<IPublicTrafficApiPort>();
             IVdsTrafficSnapshotSourcePort source = provider.GetRequiredService<IVdsTrafficSnapshotSourcePort>();
             IVdsGeoRepositoryPort geoRepository = provider.GetRequiredService<IVdsGeoRepositoryPort>();
+            IRoadNameHighwaySearchPort roadNameSearchPort = provider.GetRequiredService<IRoadNameHighwaySearchPort>();
+            IRoadNameQueryExpanderPort roadNameQueryExpanderPort = provider.GetRequiredService<IRoadNameQueryExpanderPort>();
+            SearchRoadByNameService roadNameSearchService = provider.GetRequiredService<SearchRoadByNameService>();
             VdsTrafficSnapshotStore store1 = provider.GetRequiredService<VdsTrafficSnapshotStore>();
             VdsTrafficSnapshotStore store2 = provider.GetRequiredService<VdsTrafficSnapshotStore>();
             VdsTrafficSnapshotRefresher refresher = provider.GetRequiredService<VdsTrafficSnapshotRefresher>();
@@ -23,6 +27,9 @@ namespace TestProject1
             Assert.IsInstanceOfType(trafficApi, typeof(CachedPublicTrafficApiAdapter));
             Assert.IsInstanceOfType(source, typeof(ItsVdsTrafficSnapshotSourceAdapter));
             Assert.IsInstanceOfType(geoRepository, typeof(VdsRepository));
+            Assert.IsInstanceOfType(roadNameSearchPort, typeof(RoadNameHighwaySearchAdapter));
+            Assert.IsInstanceOfType(roadNameQueryExpanderPort, typeof(DefaultRoadNameQueryExpanderAdapter));
+            Assert.IsNotNull(roadNameSearchService);
             Assert.AreSame(store1, store2);
             Assert.AreSame(refresher, refresherPort);
         }
@@ -38,6 +45,9 @@ namespace TestProject1
             services.AddSingleton<VdsRepository>();
             services.AddSingleton<IVdsGeoRepositoryPort>(
                 provider => provider.GetRequiredService<VdsRepository>());
+            services.AddSingleton<IRoadNameHighwaySearchPort, RoadNameHighwaySearchAdapter>();
+            services.AddSingleton<IRoadNameQueryExpanderPort, DefaultRoadNameQueryExpanderAdapter>();
+            services.AddSingleton<SearchRoadByNameService>();
             services.AddSingleton<IPublicTrafficApiPort, CachedPublicTrafficApiAdapter>();
             services.AddSingleton<HttpClient>();
 
