@@ -1,6 +1,8 @@
 ﻿using Npgsql;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using TrafficForm.Domain;
 
@@ -64,9 +66,15 @@ namespace TrafficForm.Adapter
 
                 foreach(string refNo in refNoString.Split(";"))
                 {
-                    if (!highways.ContainsKey(int.Parse(refNo)))
+                    if (!TryParseHighwayNo(refNo, out int highwayNo))
                     {
-                        highways.Add(int.Parse(refNo), new HighWay { ReferenceNumber = refNo, Name = road_name });
+                        Debug.WriteLine($"[OpenStreetDbRepository.findAdjacentHighways] skipped non-numeric ref='{refNo}' road_name='{road_name}'");
+                        continue;
+                    }
+
+                    if (!highways.ContainsKey(highwayNo))
+                    {
+                        highways.Add(highwayNo, new HighWay { ReferenceNumber = refNo, Name = road_name });
                     }
                 }
             }
@@ -139,8 +147,9 @@ namespace TrafficForm.Adapter
 
                 foreach (string refNo in refNoText.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
-                    if (!int.TryParse(refNo, out int highwayNo))
+                    if (!TryParseHighwayNo(refNo, out int highwayNo))
                     {
+                        Debug.WriteLine($"[OpenStreetDbRepository.findRoadNameCandidates] skipped non-numeric ref='{refNo}' roadName='{roadNameText}'");
                         continue;
                     }
 
@@ -156,7 +165,27 @@ namespace TrafficForm.Adapter
                 }
             }
 
+            Debug.WriteLine(
+                $"[OpenStreetDbRepository.findRoadNameCandidates] roadName='{roadName?.Trim() ?? string.Empty}', bounds=({minLongitude}, {minLatitude})-({maxLongitude}, {maxLatitude}), rawCandidateCount={candidates.Count}");
+
+            foreach (RoadNameCandidate candidate in candidates.Take(10))
+            {
+                Debug.WriteLine(
+                    $"[OpenStreetDbRepository.findRoadNameCandidates] candidate highwayNo={candidate.HighwayNo}, ref='{candidate.ReferenceNumber}', name='{candidate.HighwayName}', lat={candidate.Latitude}, lon={candidate.Longitude}, distanceM={candidate.DistanceMeters}");
+            }
+
             return candidates;
+        }
+
+        private static bool TryParseHighwayNo(string refNo, out int highwayNo)
+        {
+            if (int.TryParse(refNo, out highwayNo))
+            {
+                return true;
+            }
+
+            string digitsOnly = new string(refNo.Where(char.IsDigit).ToArray());
+            return !string.IsNullOrWhiteSpace(digitsOnly) && int.TryParse(digitsOnly, out highwayNo);
         }
 
     }

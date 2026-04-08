@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using TrafficForm.Domain;
 using TrafficForm.Port;
 
@@ -20,6 +21,15 @@ namespace TrafficForm.Adapter
                 bounds.MinLongitude,
                 bounds.MaxLatitude,
                 bounds.MaxLongitude);
+
+            Debug.WriteLine(
+                $"[RoadNameSearchAdapter] roadName='{roadName}', bounds=({bounds.MinLongitude}, {bounds.MinLatitude})-({bounds.MaxLongitude}, {bounds.MaxLatitude}), candidateCount={candidates.Count}");
+
+            foreach (RoadNameCandidate candidate in candidates.Take(10))
+            {
+                Debug.WriteLine(
+                    $"[RoadNameSearchAdapter] candidate highwayNo={candidate.HighwayNo}, ref='{candidate.ReferenceNumber}', name='{candidate.HighwayName}', lat={candidate.Latitude}, lon={candidate.Longitude}, distanceM={candidate.DistanceMeters}");
+            }
 
             return RoadNameResolutionSelector.SelectBestCandidate(candidates);
         }

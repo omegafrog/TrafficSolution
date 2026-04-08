@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using TrafficForm.Domain;
 using TrafficForm.Port;
 
@@ -31,12 +32,19 @@ namespace TrafficForm.App
             }
 
             MapBounds bounds = command.Bounds.Normalize();
+            Debug.WriteLine(
+                $"[RoadNameSearch] request roadName='{roadName}', bounds=({bounds.MinLongitude}, {bounds.MinLatitude})-({bounds.MaxLongitude}, {bounds.MaxLatitude}), mode={command.Mode}");
+
             RoadNameCandidate? candidate = await _roadNameSearchPort.ResolveRoadNameAsync(roadName, bounds);
 
             if (candidate == null)
             {
+                Debug.WriteLine($"[RoadNameSearch] no candidate found for roadName='{roadName}'");
                 throw new InvalidOperationException($"'{roadName}'에 해당하는 도로를 찾지 못했습니다.");
             }
+
+            Debug.WriteLine(
+                $"[RoadNameSearch] selected highwayNo={candidate.HighwayNo}, ref='{candidate.ReferenceNumber}', name='{candidate.HighwayName}', lat={candidate.Latitude}, lon={candidate.Longitude}, distanceM={candidate.DistanceMeters}");
 
             return new RoadSearchDispatchResult
             {

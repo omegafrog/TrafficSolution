@@ -1,3 +1,13 @@
 # Codex orchestration worktrees
 worktree/
 
+/.vs
+/TestProject1/bin
+/TestProject1/obj
+/TrafficForm/bin/Debug/net10.0-windows
+/TrafficForm/obj
+/TrafficForm/osm-local/data
+/TrafficForm/osm-local/overpass-db
+*.user
+/.serena
+/TrafficForm/.serena
