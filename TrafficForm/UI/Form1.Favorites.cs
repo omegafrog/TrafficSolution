@@ -272,7 +272,7 @@ public partial class Form1
         }
     }
 
-    private void SetRightPanelContentMode(RightPanelContentMode mode)
+    private void SetRightPanelContentMode(RightPanelContentMode mode, bool ensureVisible = true)
     {
         _rightPanelContentMode = mode;
 
@@ -282,7 +282,10 @@ public partial class Form1
             _searchSummaryPanel.Visible = true;
             flowLayoutPanel1.Visible = true;
             detailPanelWidth = ReducedRightPanelWidth;
-            EnsureRightPanelVisible();
+            if (ensureVisible)
+            {
+                EnsureRightPanelVisible();
+            }
         }
         else
         {
@@ -290,9 +293,15 @@ public partial class Form1
             _searchSummaryPanel.Visible = false;
             flowLayoutPanel1.Visible = false;
             RenderFavoritesCurrentMode();
-            detailPanelOpen = true;
+            if (ensureVisible)
+            {
+                detailPanelOpen = true;
+            }
             detailPanelWidth = FixedRightPanelWidth;
-            EnsureRightPanelVisible();
+            if (ensureVisible)
+            {
+                EnsureRightPanelVisible();
+            }
         }
 
         UpdateRightPanelContentTabChecks();
