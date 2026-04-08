@@ -2,7 +2,7 @@
 
 owner: Codex
 
-status: draft
+status: completed
 
 stop_state_at: 2026-04-02
 
@@ -14,7 +14,7 @@ parent_docs:
 
 # Detailed Design
 
-이 문서는 2026-04-02 partial stop-state 기준 상세 설계 기록이다. `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했고, `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
+이 문서는 2026-04-02 stop-state 기준 상세 설계 기록이다. `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했고, `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
 
 ## Design Decisions
 
@@ -24,6 +24,7 @@ parent_docs:
 - 클릭과 검색의 공통 후속 경로는 `후보 고속도로가 정해진 뒤`부터 공유한다.
 - 혼잡도 모드는 매칭된 고속도로 집합 전체를 사용한다.
 - CCTV 모드는 최상위 매칭 1건만 선택한다.
+- 로컬 Docker Postgres (`TrafficForm/osm-local/compose.yaml`) 스키마 검증 결과 `public.vds`에는 `도로명`이 없고 `public.vds_loc`에만 있으므로, bounds 기반 distinct highway 조회는 `vl."도로명"`을 사용한다.
 
 ## Matching Rules
 
@@ -161,6 +162,7 @@ private Task RunCctvLookupAsync(
   - `VdsRepository`를 사용해 bounds 내부의 distinct highway 후보를 exact/partial로 나눠 조회한다.
 - `VdsRepository`
   - `vds`와 `vds_loc`를 조합해 `현재 bounds 내부 + 실제 VDS가 있는 도로` 후보만 반환한다.
+  - 도로명은 로컬 스키마 검증 결과에 맞춰 `v."도로명"`이 아니라 `vl."도로명"`에서 읽는다.
 
 ## UI Contract
 

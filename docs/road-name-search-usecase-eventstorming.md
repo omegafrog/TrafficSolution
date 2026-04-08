@@ -5,8 +5,8 @@
 - 유스케이스 식별자: `UC-SCH-001`
 - 구현 기준 유스케이스 문서: [`docs/usecase-spec.md`](usecase-spec.md)
 - 현재 repo의 계획 문서: [`docs/exec-plans/completed/road-name-search/plan.md`](exec-plans/completed/road-name-search/plan.md)
-- raw execute output 기준 계획 경로: `docs/exec-plans/active/road-name-search/plan.md` partial stop-state
-- 본 문서는 2026-04-02 partial stop-state execute output을 source of truth로 반영한 설계/구현 추적 문서다.
+- raw execute output 기준 계획 경로: `docs/exec-plans/active/road-name-search/plan.md`
+- 본 문서는 2026-04-02 execute output과 이후 schema fix를 반영한 설계/구현 추적 문서다.
 
 ---
 
@@ -29,7 +29,8 @@
 - UI는 `SearchRoadByNameService`를 호출하고, 서비스는 `IRoadNameQueryExpanderPort`와 `IRoadNameHighwaySearchPort`를 거쳐 `VdsRepository` 기반 검색을 수행한다.
 - 클릭 기반 혼잡도/CCTV 흐름은 후보 고속도로 결정 뒤부터 공통 downstream wrapper를 재사용하도록 정리된 상태다.
 - 외부 HTTP API, DB schema, 환경변수 계약 변경은 없다.
-- `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했고, `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
+- `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했고, `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 Linux에서 `NETSDK1100`으로 실패했다.
+- `TrafficForm/osm-local/compose.yaml` 기준 로컬 Docker Postgres 스키마를 점검한 결과 `public.vds`에는 `도로명`이 없고 `public.vds_loc`에만 있어, `TrafficForm/Adapter/VdsRepository.cs`의 bounds 검색 쿼리는 `vl."도로명"`을 사용하도록 수정된 상태다.
 
 ---
 
@@ -260,8 +261,7 @@
 ### 11.2 Remaining Risks / Follow-ups
 
 - 현재 워크트리는 중단 시점의 부분 구현 상태라 컴파일 가능 여부가 확인되지 않았다.
-- `TrafficForm/Adapter/VdsRepository.cs`의 `vds."도로명"` 컬럼 참조는 런타임 DB 스키마와 불일치할 수 있고, 이 부분은 검증이 끝나지 않았다.
-- `README.md`와 설계 문서는 현재 repo에 존재하는 `docs/exec-plans/completed/road-name-search/plan.md`를 가리키지만, raw execute output은 active 경로를 기준으로 했다.
+- `README.md`와 설계 문서는 현재 repo에 존재하는 `docs/exec-plans/completed/road-name-search/plan.md`를 가리키며, raw execute output의 active 경로는 역사적 참조다.
 - 기존 `TrafficForm/App/RequestTrafficByPosService.cs`의 `NotImplementedException` 부채는 이번 작업의 주목적이 아니다. 검색 기능 구현 중 범위를 불필요하게 넓히지 않는다.
 
 ### 11.2 Non-Goals
@@ -292,7 +292,6 @@
 
 - Windows 또는 `Microsoft.WindowsDesktop.App 10.0` 런타임이 있는 환경에서 `dotnet test` 재실행
 - `TrafficSolution.slnx` solution-level build 실패 원인 재확인
-- `vds."도로명"` 컬럼을 사용하는 bounds 검색 쿼리의 실제 로컬 Postgres 데이터셋 검증
 - AGENTS 규칙상 build 이후 앱 실행은 하지 않았으므로 검색 UI와 실제 지도 연동은 수동 점검 필요
 - 형태소 분석기 또는 검색어 확장 포트의 실제 플러그인 구현
 - 오타 교정/퍼지 검색 정책 추가 여부 검토

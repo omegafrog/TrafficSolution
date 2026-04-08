@@ -2,7 +2,7 @@
 
 owner: Codex
 
-status: draft
+status: completed
 
 stop_state_at: 2026-04-02
 
@@ -14,7 +14,7 @@ parent_docs:
 
 # Domain Boundary
 
-이 문서는 2026-04-02 partial stop-state 기준 설계 기록이다. `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했고, `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
+이 문서는 2026-04-02 stop-state 기준 설계 기록이다. `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했고, `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
 
 ## 배경
 

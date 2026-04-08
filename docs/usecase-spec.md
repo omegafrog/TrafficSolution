@@ -266,7 +266,8 @@
 - 시스템은 현재 지도 center/bounds를 읽고, bounds 내부 `vds + vds_loc` 기준으로 exact > partial 순서로 도로를 찾는다.
 - 현재 우측 패널 모드가 `혼잡도`면 매칭된 고속도로 집합 전체로 VDS 조회를 이어가고, `CCTV`면 최상위 1건으로 CCTV 조회를 이어간다.
 - 검색 결과가 없으면 현재 모드의 결과 컨텍스트를 비우고 상태 메시지로 안내한다.
-- 현재 worktree 기준 구현/문서 반영은 존재하고, `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했으며 `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
+- 현재 worktree 기준 구현/문서 반영은 존재하고, `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했으며 `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 Linux에서 `NETSDK1100`으로 실패했다.
+- 로컬 Docker Postgres (`TrafficForm/osm-local/compose.yaml`) 스키마 점검 결과 `public.vds`에는 `도로명`이 없고 `public.vds_loc`에만 있어, `TrafficForm/Adapter/VdsRepository.cs`의 bounds 검색 쿼리는 `vl."도로명"` 기준으로 수정됐다.
 
 ### 2) 관련 구현 / 설계 문서
 
@@ -285,7 +286,7 @@
 - 설계 문서:
   - [`docs/road-name-search-usecase-eventstorming.md`](road-name-search-usecase-eventstorming.md)
   - [`docs/exec-plans/completed/road-name-search/plan.md`](exec-plans/completed/road-name-search/plan.md)
-    - 현재 repo에 존재하는 stop-state 문서 경로다. raw execute output은 `docs/exec-plans/active/road-name-search/plan.md` 기준 partial stop-state를 가리켰다.
+    - 현재 repo에 존재하는 stop-state 문서 경로다. raw execute output은 `docs/exec-plans/active/road-name-search/plan.md`를 기준으로 했지만, 현재 유지본은 completed stop-state다.
   - [`docs/exec-plans/completed/road-name-search/design/detailed-design.md`](exec-plans/completed/road-name-search/design/detailed-design.md)
 
 ### 3) 핵심 규칙

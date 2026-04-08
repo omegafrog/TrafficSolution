@@ -8,6 +8,14 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 
 ALLOWED_STATUS = {"draft", "verified", "completed", "deprecated"}
+REQUIRED_PATHS = [
+    DOCS / "design-docs" / "index.md",
+    DOCS / "product-specs" / "index.md",
+    DOCS / "exec-plans" / "index.md",
+    DOCS / "exec-plans" / "active" / "index.md",
+    DOCS / "exec-plans" / "completed" / "index.md",
+    DOCS / "references" / "README.md",
+]
 
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 
@@ -54,14 +62,24 @@ def check_plan(plan_path: Path) -> list[str]:
 
 
 def main() -> int:
-    plan_files = sorted(DOCS.glob("exec-plans/active/**/plan.md"))
-    plan_files.extend(sorted(DOCS.glob("exec-plans/completed/**/plan.md")))
-    if not plan_files:
-        fail("no plan.md files found under docs/exec-plans/{active,completed}")
-        return 1
-
     errors: list[str] = []
-    for plan in plan_files:
+
+    for required in REQUIRED_PATHS:
+        if not required.exists():
+            errors.append(f"missing required path: {required.relative_to(ROOT)}")
+
+    active_plan_files = sorted(DOCS.glob("exec-plans/active/**/plan.md"))
+    if not active_plan_files:
+        if errors:
+            for error in errors:
+                fail(error)
+            print(f"\nFAILED: {len(errors)} issue(s)")
+            return 1
+
+        print("OK: no active plans yet")
+        return 0
+
+    for plan in active_plan_files:
         errors.extend(check_plan(plan))
 
     if errors:

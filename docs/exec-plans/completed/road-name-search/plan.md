@@ -23,8 +23,8 @@ created_at: 2026-04-02
 
 # Task Summary
 
-- 현재 repo에는 `docs/exec-plans/completed/road-name-search/plan.md`만 존재하지만, 2026-04-02 raw execute output은 `docs/exec-plans/active/road-name-search/plan.md` 기준 partial stop-state를 가리킨다.
-- 이 문서는 현재 worktree 기준 partial stop-state 기록이며, active/completed 경로 정합성 정리는 후속 작업이다.
+- 현재 repo에는 `docs/exec-plans/completed/road-name-search/plan.md`가 유지본으로 존재한다.
+- 2026-04-02 raw execute output은 `docs/exec-plans/active/road-name-search/plan.md` 기준 partial stop-state를 가리켰지만, 현재 worktree 기준 기록은 completed stop-state다.
 
 - WinForms 앱에 `도로명 검색`을 추가한다.
 - 검색 대상은 항상 `현재 map bounds 내부`로 제한한다.
@@ -92,11 +92,14 @@ created_at: 2026-04-02
 - `dotnet test TrafficSolution.slnx`
   - 결과: 실행됨, 실패 (`NETSDK1100`)
   - 상세: 현재 환경에서 `NETSDK1100`으로 테스트가 실패했다.
+- 로컬 Docker Postgres schema check (`TrafficForm/osm-local/compose.yaml`)
+  - 결과: 실행됨, 통과
+  - 상세: `public.vds`에는 `도로명` 컬럼이 없고 `public.vds_loc`에만 `도로명` 컬럼이 있음을 확인했고, 이에 맞춰 `TrafficForm/Adapter/VdsRepository.cs` bounds 검색 쿼리가 `vl."도로명"`을 사용하도록 수정됐다.
 
 # Documentation Plan
 
 - 현재 repo의 stop-state 문서 엔트리 포인트: `docs/exec-plans/completed/road-name-search/plan.md`
-- active/completed 경로 정합성 검토 필요: raw execute output은 `docs/exec-plans/active/road-name-search/plan.md`를 가리켰다.
+- raw execute output의 `active/...` 경로는 역사적 참조이며, 현재 repo 유지본은 `completed/...` 경로다.
 - 기존 설계 산출물 문서 유지: `docs/road-name-search-usecase-eventstorming.md`
 - 기존 설계 산출물 연계 유지: `docs/road-name-search-usecase-eventstorming.md`
 - stop-state product-spec 문서: `docs/exec-plans/completed/road-name-search/product-spec/domain-boundary.md`
@@ -133,8 +136,7 @@ created_at: 2026-04-02
 # Remaining Risks / Follow-ups
 
 - 현재 워크트리는 중단 시점의 부분 구현 상태라 컴파일 가능 여부가 확인되지 않았다.
-- `TrafficForm/Adapter/VdsRepository.cs`의 `vds."도로명"` 컬럼 참조는 런타임 DB 스키마와 불일치할 수 있고, 이 부분은 검증이 끝나지 않았다.
-- `README.md`는 `docs/exec-plans/completed/road-name-search/plan.md`를 가리키고 있는데 raw execute output의 active 경로와 정합성 검토가 남아 있다.
+- `README.md`는 `docs/exec-plans/completed/road-name-search/plan.md`를 가리키며, 현재 유지본과 정합하다.
 - UI wrapper, downstream 공통화, 신규 테스트는 모두 현재 변경 집합에 존재하지만 통합 검증 전이다.
 
 # Assumptions

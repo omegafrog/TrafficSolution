@@ -26,7 +26,8 @@
 - 검색 저장소: `TrafficForm/Adapter/VdsRepository.cs`
 - downstream 재사용: `TrafficForm/App/RequestTrafficByPosService.cs`, `TrafficForm/App/RequestCctvByPosService.cs`
 - 정책: 현재 map bounds 내부만 검색하고, `Exact > Partial` 우선순위를 적용한다. 혼잡도는 매칭 집합 전체, CCTV는 최상위 1건만 downstream으로 보낸다.
-- 상태: 현재 worktree에는 검색 체인 구현과 문서 반영이 존재하고, `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했으며 `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
+- 상태: 현재 worktree에는 검색 체인 구현과 문서 반영이 존재하고, `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했으며 `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 Linux에서 `NETSDK1100`으로 실패했다.
+- 로컬 스키마 확인: `TrafficForm/osm-local/compose.yaml` 기준 Docker Postgres를 점검한 결과 `public.vds`에는 `도로명` 컬럼이 없고 `public.vds_loc`에만 `도로명` 컬럼이 있어, `TrafficForm/Adapter/VdsRepository.cs`의 bounds 검색 쿼리는 `vl."도로명"`을 사용하도록 수정됐다.
 
 
 ### VDS 트래픽 스냅샷 캐시
@@ -140,11 +141,12 @@ TrafficSolution/
 - 즐겨찾기 기능 설계(Use Case + Event Storming): [`docs/favorites-usecase-eventstorming.md`](docs/favorites-usecase-eventstorming.md)
 - `UC-SCH-001` 도로명 검색 기반 조회 설계: [`docs/road-name-search-usecase-eventstorming.md`](docs/road-name-search-usecase-eventstorming.md)
 - `UC-SCH-001` stop-state 계획 문서: [`docs/exec-plans/completed/road-name-search/plan.md`](docs/exec-plans/completed/road-name-search/plan.md)
-  - 참고: 현재 repo에는 `completed/...` 경로만 존재한다. raw execute output은 `docs/exec-plans/active/road-name-search/plan.md` partial stop-state를 기준으로 했다.
+  - 참고: 현재 repo에는 `completed/...` 경로만 존재한다. raw execute output은 `docs/exec-plans/active/road-name-search/plan.md`를 기준으로 했지만, 현재 유지본은 completed stop-state다.
 - 현재 검증 상태 (2026-04-02 stop-state):
   - `python3 .agents/skills/docs-verify/scripts/run.py`: 실행됨, 통과
   - `dotnet build TrafficSolution.slnx`: 실행됨, 실패 (`NETSDK1100`)
   - `dotnet test TrafficSolution.slnx`: 실행됨, 실패 (`NETSDK1100`)
+  - 로컬 Docker Postgres (`TrafficForm/osm-local/compose.yaml`) 스키마 검증: `public.vds`에는 `도로명` 없음, `public.vds_loc`에는 `도로명` 존재, 이에 맞춰 `TrafficForm/Adapter/VdsRepository.cs`가 `vl."도로명"`을 사용하도록 수정됨
   - Windows 성공 검증은 아직 없고, 현재 확인된 결과는 문서 검증 통과와 `NETSDK1100` 실패다.
 - 포함 내용:
   - 식별자별 클라이언트 기준 기능 설명
