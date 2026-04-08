@@ -7,7 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 
-ALLOWED_STATUS = {"draft", "verified", "deprecated"}
+ALLOWED_STATUS = {"draft", "verified", "completed", "deprecated"}
+
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 
 

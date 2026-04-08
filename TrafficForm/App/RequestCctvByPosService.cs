@@ -74,28 +74,27 @@ namespace TrafficForm.App
                 ? selectedTraffic
                 : new List<VdsTrafficResult>();
 
-            List<CctvInfo> cctvCandidates = await _cctvApiPort.GetCctvInfo(
-                command.MinLongitude,
-                command.MinLatitude,
-                command.MaxLongitude,
-                command.MaxLatitude);
-
-            List<CctvInfo> filteredCctvInfos = FilterByHighwayProximityAndNameSimilarity(
+            return await BuildHighwayCctvSelectionAsync(
+                selectedHighwayNo,
+                selectedHighwayName,
                 selectedHighwayVds,
-                cctvCandidates,
-                selectedHighwayName);
-            foreach (CctvInfo cctvInfo in filteredCctvInfos)
-            {
-                cctvInfo.HighwayNo = selectedHighwayNo;
-                cctvInfo.HighwayName = selectedHighwayName;
-            }
+                command);
+        }
 
-            return new HighwayCctvSelection
-            {
-                HighwayNo = selectedHighwayNo,
-                HighwayName = selectedHighwayName,
-                CctvInfos = filteredCctvInfos
-            };
+        public async Task<HighwayCctvSelection> GetHighwayCctvAsync(
+            int highwayNo,
+            string highwayName,
+            UpdateSelectedPosCctvInfoCommand command)
+        {
+            ValidateSelectedPoint(command);
+            command.NormalizeBounds();
+
+            Dictionary<int, List<VdsTrafficResult>> trafficByHighway = await LoadTrafficByHighway(new[] { highwayNo }, command);
+            List<VdsTrafficResult> selectedHighwayVds = trafficByHighway.TryGetValue(highwayNo, out List<VdsTrafficResult>? trafficResults)
+                ? trafficResults
+                : new List<VdsTrafficResult>();
+
+            return await BuildHighwayCctvSelectionAsync(highwayNo, highwayName, selectedHighwayVds, command);
         }
 
         private static void ValidateSelectedPoint(UpdateSelectedPosCctvInfoCommand command)
@@ -137,6 +136,37 @@ namespace TrafficForm.App
             }
 
             return result;
+        }
+
+        private async Task<HighwayCctvSelection> BuildHighwayCctvSelectionAsync(
+            int highwayNo,
+            string highwayName,
+            List<VdsTrafficResult> selectedHighwayVds,
+            UpdateSelectedPosCctvInfoCommand command)
+        {
+            List<CctvInfo> cctvCandidates = await _cctvApiPort.GetCctvInfo(
+                command.MinLongitude,
+                command.MinLatitude,
+                command.MaxLongitude,
+                command.MaxLatitude);
+
+            List<CctvInfo> filteredCctvInfos = FilterByHighwayProximityAndNameSimilarity(
+                selectedHighwayVds,
+                cctvCandidates,
+                highwayName);
+
+            foreach (CctvInfo cctvInfo in filteredCctvInfos)
+            {
+                cctvInfo.HighwayNo = highwayNo;
+                cctvInfo.HighwayName = highwayName;
+            }
+
+            return new HighwayCctvSelection
+            {
+                HighwayNo = highwayNo,
+                HighwayName = highwayName,
+                CctvInfos = filteredCctvInfos
+            };
         }
 
         private static int SelectClosestHighwayNo(

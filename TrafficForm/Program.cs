@@ -32,6 +32,8 @@ namespace TrafficForm
             services.AddSingleton<FavoriteService>();
             services.AddSingleton<IOpenStreetQueryPort, OpenStreetQueryAdapter>();
             services.AddSingleton<IRoadNameSearchPort, RoadNameSearchAdapter>();
+            services.AddSingleton<IRoadNameHighwaySearchPort, RoadNameHighwaySearchAdapter>();
+            services.AddSingleton<IRoadNameQueryExpanderPort, DefaultRoadNameQueryExpanderAdapter>();
             services.AddSingleton<VdsTrafficSnapshotStore>();
             services.AddSingleton<IVdsTrafficSnapshotSourcePort, ItsVdsTrafficSnapshotSourceAdapter>();
             services.AddSingleton<VdsTrafficSnapshotRefresher>();

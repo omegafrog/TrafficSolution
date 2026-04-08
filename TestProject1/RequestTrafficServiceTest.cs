@@ -253,5 +253,58 @@ namespace TestProject1
 
             await Assert.ThrowsAsync<NotImplementedException>(() => trafficService.GetAdjacentHighWays(command));
         }
+
+        [TestMethod]
+        public async Task GetTrafficByHighwaysAsync_UsesDistinctHighwaysAndNormalizedBounds()
+        {
+            Mock<IOpenStreetQueryPort> mockPort = new Mock<IOpenStreetQueryPort>();
+            Mock<IPublicTrafficApiPort> mockTrafficInfoPort = new Mock<IPublicTrafficApiPort>();
+            RequestTrafficByPosService trafficService = new RequestTrafficByPosService(mockPort.Object, mockTrafficInfoPort.Object);
+
+            UpdateSelectedPosTrafficInfoCommand command = new UpdateSelectedPosTrafficInfoCommand(37.5, 127.0)
+            {
+                MinLongitude = 132.9,
+                MinLatitude = 39.4,
+                MaxLongitude = 124.1,
+                MaxLatitude = 32.5
+            };
+
+            mockTrafficInfoPort
+                .Setup(port => port.GetTrafficResult(
+                    It.IsAny<int>(),
+                    UpdateSelectedPosTrafficInfoCommand.MIN_LONGITUDE,
+                    UpdateSelectedPosTrafficInfoCommand.MIN_LATITUDE,
+                    UpdateSelectedPosTrafficInfoCommand.MAX_LONGITUDE,
+                    UpdateSelectedPosTrafficInfoCommand.MAX_LATITUDE))
+                .ReturnsAsync(new List<VdsTrafficResult>
+                {
+                    new VdsTrafficResult
+                    {
+                        VdsId = Guid.NewGuid().ToString("N"),
+                        CollectedDate = "2000-01-01 00:00:00",
+                        Speed = 80,
+                        Volume = 100,
+                        Occupancy = 20,
+                        Location = new Location { Latitude = 37.5, Longitude = 127.0, Name = string.Empty }
+                    }
+                });
+
+            Dictionary<int, List<VdsTrafficResult>> result = await trafficService.GetTrafficByHighwaysAsync(new[] { 1, 1, 50 }, command);
+
+            Assert.AreEqual(2, result.Count);
+            mockTrafficInfoPort.Verify(port => port.GetTrafficResult(
+                1,
+                UpdateSelectedPosTrafficInfoCommand.MIN_LONGITUDE,
+                UpdateSelectedPosTrafficInfoCommand.MIN_LATITUDE,
+                UpdateSelectedPosTrafficInfoCommand.MAX_LONGITUDE,
+                UpdateSelectedPosTrafficInfoCommand.MAX_LATITUDE), Times.Once);
+            mockTrafficInfoPort.Verify(port => port.GetTrafficResult(
+                50,
+                UpdateSelectedPosTrafficInfoCommand.MIN_LONGITUDE,
+                UpdateSelectedPosTrafficInfoCommand.MIN_LATITUDE,
+                UpdateSelectedPosTrafficInfoCommand.MAX_LONGITUDE,
+                UpdateSelectedPosTrafficInfoCommand.MAX_LATITUDE), Times.Once);
+            mockPort.Verify(port => port.GetAdjacentHighWays(It.IsAny<Location>()), Times.Never);
+        }
     }
 }

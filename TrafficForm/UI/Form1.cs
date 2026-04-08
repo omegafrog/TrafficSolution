@@ -16,6 +16,7 @@ namespace TrafficForm
         private RoadNameSearchService? _roadNameSearchService;
         private readonly Dictionary<string, HighwayListControl> _controlMap = new Dictionary<string, HighwayListControl>();
         private readonly Dictionary<string, int> _latestVdsHighwayNumberById = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<int, string> _latestRoadSearchHighwayNames = new Dictionary<int, string>();
         private readonly List<int> _latestTrafficHighwayNumbers = new List<int>();
         private int _fixedLeftPanelWidth;
         private const int FixedRightPanelWidth = 520;
@@ -416,6 +417,14 @@ namespace TrafficForm
         {
             _statusMessageLabel.Text = $"[{DateTime.Now:HH:mm:ss}] {message}";
             _statusProgressBar.Visible = showBusyIndicator;
+        }
+
+        private void SetLookupUiBusy(bool isBusy)
+        {
+            _mapInteractionModeComboBox.Enabled = !isBusy;
+            _rightPanelModeComboBox.Enabled = !isBusy;
+            _roadNameSearchButton.Enabled = !isBusy;
+            _roadNameSearchTextBox.Enabled = !isBusy;
         }
 
         private async void RoadNameSearchButton_Click(object? sender, EventArgs e)
@@ -1252,12 +1261,6 @@ namespace TrafficForm
 
         private async Task UpdateSelectedPosTrafficInfoFromMessage(string message)
         {
-            if (_requestTrafficByPosService == null)
-            {
-                SetStatusMessage("혼잡도 조회 서비스가 초기화되지 않았습니다.", false);
-                return;
-            }
-
             string normalized = NormalizeSelectionMessage(message);
             UpdateSelectedPosTrafficInfoCommand? data = JsonSerializer.Deserialize<UpdateSelectedPosTrafficInfoCommand>(normalized);
 
@@ -1267,32 +1270,48 @@ namespace TrafficForm
                 return;
             }
 
-            _latestTrafficSelectionCommand = new UpdateSelectedPosTrafficInfoCommand(data.Latitude, data.Longitude)
+            _latestRoadSearchHighwayNames.Clear();
+            await RunTrafficLookupAsync(data);
+        }
+
+        private async Task RunTrafficLookupAsync(
+            UpdateSelectedPosTrafficInfoCommand command,
+            IReadOnlyList<int>? selectedHighwayNumbers = null)
+        {
+            if (_requestTrafficByPosService == null)
             {
-                MinLongitude = data.MinLongitude,
-                MinLatitude = data.MinLatitude,
-                MaxLongitude = data.MaxLongitude,
-                MaxLatitude = data.MaxLatitude
-            };
+                SetStatusMessage("혼잡도 조회 서비스가 초기화되지 않았습니다.", false);
+                return;
+            }
+
+            if (_isTrafficLookupInProgress)
+            {
+                SetStatusMessage("이미 혼잡도 조회 중입니다. 잠시만 기다려주세요.", true);
+                return;
+            }
 
             int requestVersion = System.Threading.Interlocked.Increment(ref _trafficLookupRequestVersion);
-
             _isTrafficLookupInProgress = true;
-            _mapInteractionModeComboBox.Enabled = false;
-            _rightPanelModeComboBox.Enabled = false;
-            SetStatusMessage("좌표를 확인했습니다. 주변 고속도로를 조회 중입니다...", true);
+            SetLookupUiBusy(true);
+            SetStatusMessage(
+                selectedHighwayNumbers == null
+                    ? "좌표를 확인했습니다. 주변 고속도로를 조회 중입니다..."
+                    : "검색 결과 고속도로의 혼잡도를 조회 중입니다...",
+                true);
 
             try
             {
-                List<VdsTrafficResult> results = new List<VdsTrafficResult>();
-                Dictionary<int, List<VdsTrafficResult>> highWays = await _requestTrafficByPosService.GetAdjacentHighWays(data);
-                CacheTrafficLookupContext(highWays, data);
-                SetStatusMessage("조회 결과를 정리 중입니다...", true);
+                Dictionary<int, List<VdsTrafficResult>> trafficByHighway = selectedHighwayNumbers == null
+                    ? await _requestTrafficByPosService.GetAdjacentHighWays(command)
+                    : await _requestTrafficByPosService.GetTrafficByHighwaysAsync(selectedHighwayNumbers, command);
 
-                foreach (int highwayId in highWays.Keys)
+                if (selectedHighwayNumbers != null)
                 {
-                    results.AddRange(highWays[highwayId]);
+                    ApplySelectedHighwayNames(trafficByHighway);
                 }
+
+                CacheTrafficLookupContext(trafficByHighway, command);
+                List<VdsTrafficResult> results = trafficByHighway.Values.SelectMany(items => items).ToList();
 
                 if (requestVersion != _trafficLookupRequestVersion || _rightPanelMode != RightPanelMode.Traffic)
                 {
@@ -1312,10 +1331,8 @@ namespace TrafficForm
             finally
             {
                 _isTrafficLookupInProgress = false;
-                _mapInteractionModeComboBox.Enabled = true;
-                _rightPanelModeComboBox.Enabled = true;
+                SetLookupUiBusy(false);
             }
-
         }
 
         private void CacheTrafficLookupContext(
@@ -1341,6 +1358,53 @@ namespace TrafficForm
                 MinLatitude = command.MinLatitude,
                 MaxLongitude = command.MaxLongitude,
                 MaxLatitude = command.MaxLatitude
+            };
+        }
+
+        private void ClearTrafficLookupContext()
+        {
+            _latestTrafficHighwayNumbers.Clear();
+            _latestVdsHighwayNumberById.Clear();
+            _selectedTrafficVdsId = null;
+            _latestTrafficSelectionCommand = null;
+            CacheLatestTrafficResults(Array.Empty<VdsTrafficResult>());
+        }
+
+        private void ApplySelectedHighwayNames(Dictionary<int, List<VdsTrafficResult>> trafficByHighway)
+        {
+            foreach ((int highwayNo, List<VdsTrafficResult> trafficResults) in trafficByHighway)
+            {
+                if (!_latestRoadSearchHighwayNames.TryGetValue(highwayNo, out string? highwayName))
+                {
+                    continue;
+                }
+
+                foreach (VdsTrafficResult trafficResult in trafficResults)
+                {
+                    trafficResult.Location.Name = highwayName;
+                }
+            }
+        }
+
+        private static UpdateSelectedPosTrafficInfoCommand CreateTrafficLookupCommand(MapViewSnapshot snapshot)
+        {
+            return new UpdateSelectedPosTrafficInfoCommand(snapshot.Latitude, snapshot.Longitude)
+            {
+                MinLongitude = snapshot.MinLongitude,
+                MinLatitude = snapshot.MinLatitude,
+                MaxLongitude = snapshot.MaxLongitude,
+                MaxLatitude = snapshot.MaxLatitude
+            };
+        }
+
+        private static UpdateSelectedPosCctvInfoCommand CreateCctvLookupCommand(MapViewSnapshot snapshot)
+        {
+            return new UpdateSelectedPosCctvInfoCommand(snapshot.Latitude, snapshot.Longitude)
+            {
+                MinLongitude = snapshot.MinLongitude,
+                MinLatitude = snapshot.MinLatitude,
+                MaxLongitude = snapshot.MaxLongitude,
+                MaxLatitude = snapshot.MaxLatitude
             };
         }
 

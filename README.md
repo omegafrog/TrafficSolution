@@ -17,6 +17,17 @@
 - Domain: `TrafficForm/Domain/*.cs` (도메인 모델/정책)
 - Infra: `TrafficForm/osm-local/compose.yaml` (OSM 타일/Geo Postgres)
 
+### 도로명 검색 체인
+
+- 검색 진입: `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs`
+- 검색 서비스: `TrafficForm/App/SearchRoadByNameService.cs`
+- 검색 포트: `TrafficForm/Port/IRoadNameQueryExpanderPort.cs`, `TrafficForm/Port/IRoadNameHighwaySearchPort.cs`
+- 검색 어댑터: `TrafficForm/Adapter/DefaultRoadNameQueryExpanderAdapter.cs`, `TrafficForm/Adapter/RoadNameHighwaySearchAdapter.cs`
+- 검색 저장소: `TrafficForm/Adapter/VdsRepository.cs`
+- downstream 재사용: `TrafficForm/App/RequestTrafficByPosService.cs`, `TrafficForm/App/RequestCctvByPosService.cs`
+- 정책: 현재 map bounds 내부만 검색하고, `Exact > Partial` 우선순위를 적용한다. 혼잡도는 매칭 집합 전체, CCTV는 최상위 1건만 downstream으로 보낸다.
+- 상태: 현재 worktree에는 검색 체인 구현과 문서 반영이 존재하고, `python3 .agents/skills/docs-verify/scripts/run.py`는 실행되어 통과했으며 `dotnet build TrafficSolution.slnx`와 `dotnet test TrafficSolution.slnx`는 `NETSDK1100`으로 실패했다.
+
 
 ### VDS 트래픽 스냅샷 캐시
 
@@ -115,6 +126,7 @@ TrafficSolution/
 | UC-CTV-001 | CCTV 모드에서 좌표를 클릭한다 | 선택 좌표 기준 최근접 고속도로를 선택하고, 해당 고속도로 반경 1km 이내 + 고속도로명 유사 조건으로 CCTV를 필터링해 표시한다 | 선택 고속도로 기준 CCTV 카드/마커가 표시된다 | `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/App/RequestCctvByPosService.cs`, `TrafficForm/Adapter/CctvApiAdapter.cs` |
 | UC-CTV-002 | 지도의 CCTV 마커 또는 CCTV 카드를 선택한다 | 카드/마커 하이라이트와 지도 포커스를 동기화한다 | 선택한 CCTV가 지도와 카드에서 동시에 강조된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/UI/CctvListControl.cs` |
 | UC-CTV-003 | CCTV 카드를 눌러 영상을 재생한다 | URL 검증 후 팝업 플레이어를 열고, 중복 재생 창을 방지한다 | CCTV 팝업이 열리고 종료 후 상태 메시지가 갱신된다 | `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/UI/CctvPlayerPopupForm.cs` |
+| UC-SCH-001 | 좌측 검색창에서 도로명을 검색한다 | 현재 지도 bounds 내부 도로를 exact > partial 순서로 찾고, 현재 우측 패널 모드에 맞는 기존 traffic/CCTV downstream으로 이어간다 | 검색 결과가 기존 클릭 조회와 동일한 카드/마커 흐름으로 표시된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/App/SearchRoadByNameService.cs`, `TrafficForm/Adapter/RoadNameHighwaySearchAdapter.cs`, `TrafficForm/Adapter/VdsRepository.cs` |
 | UC-OPS-001 | 조회 중 같은 동작을 반복 클릭한다 | 중복 요청을 차단하고 최신 요청 버전만 반영한다 | 이전 응답이 늦게 와도 최신 결과만 화면에 남는다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs` |
 | UC-OPS-002 | 남한 범위를 벗어난 좌표를 조회한다 | 좌표/경계를 정규화 또는 예외 처리하고 실패 메시지를 표시한다 | 잘못된 입력이 조용히 통과되지 않고 사용자에게 안내된다 | `TrafficForm/App/UpdateSelectedPosCctvInfoCommand.cs`, `TrafficForm/App/RequestCctvByPosService.cs`, `TrafficForm/App/RequestTrafficByPosService.cs`, `TestProject1/RequestTrafficServiceTest.cs`, `TestProject1/RequestCctvByPosServiceTest.cs` |
 | UC-OPS-003 | 조회 진행 상태를 확인한다 | 상태바 시간 메시지와 진행 인디케이터를 단계별로 갱신한다 | 조회 시작/진행/완료/실패를 상태바에서 구분할 수 있다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs` |
@@ -127,6 +139,14 @@ TrafficSolution/
 
 - 상세 문서: [`docs/usecase-spec.md`](docs/usecase-spec.md)
 - 즐겨찾기 기능 설계(Use Case + Event Storming): [`docs/favorites-usecase-eventstorming.md`](docs/favorites-usecase-eventstorming.md)
+- `UC-SCH-001` 도로명 검색 기반 조회 설계: [`docs/road-name-search-usecase-eventstorming.md`](docs/road-name-search-usecase-eventstorming.md)
+- `UC-SCH-001` stop-state 계획 문서: [`docs/exec-plans/completed/road-name-search/plan.md`](docs/exec-plans/completed/road-name-search/plan.md)
+  - 참고: 현재 repo에는 `completed/...` 경로만 존재한다. raw execute output은 `docs/exec-plans/active/road-name-search/plan.md` partial stop-state를 기준으로 했다.
+- 현재 검증 상태 (2026-04-02 stop-state):
+  - `python3 .agents/skills/docs-verify/scripts/run.py`: 실행됨, 통과
+  - `dotnet build TrafficSolution.slnx`: 실행됨, 실패 (`NETSDK1100`)
+  - `dotnet test TrafficSolution.slnx`: 실행됨, 실패 (`NETSDK1100`)
+  - Windows 성공 검증은 아직 없고, 현재 확인된 결과는 문서 검증 통과와 `NETSDK1100` 실패다.
 - 포함 내용:
   - 식별자별 클라이언트 기준 기능 설명
   - 데이터 흐름 Sequence Diagram (PlantUML)
