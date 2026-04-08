@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using TrafficForm.Domain;
 using TrafficForm.Port;
@@ -35,21 +37,28 @@ namespace TrafficForm.App
             try
             {
                 Dictionary<int, HighWay> adjacentHighWays = await openStreetQueryPort.GetAdjacentHighWays(mapper.Invoke(command));
-                Dictionary<int, List<VdsTrafficResult>> result = await GetTrafficByHighwaysAsync(adjacentHighWays.Keys, command);
+                Debug.WriteLine(
+                    $"[RequestTrafficByPosService] adjacentHighWayCount={adjacentHighWays.Count}, lat={command.Latitude}, lon={command.Longitude}, bounds=({command.MinLongitude}, {command.MinLatitude})-({command.MaxLongitude}, {command.MaxLatitude})");
 
-                foreach (var e in adjacentHighWays)
+                Dictionary<int, List<VdsTrafficResult>> result = new Dictionary<int, List<VdsTrafficResult>>();
+                foreach(var e in adjacentHighWays)
                 {
-                    if (!result.TryGetValue(e.Key, out List<VdsTrafficResult>? trafficResults))
-                    {
-                        continue;
-                    }
+                    List<VdsTrafficResult> res = await GetTrafficResult(e.Key, command);
+                    Debug.WriteLine(
+                        $"[RequestTrafficByPosService] highwayNo={e.Key}, highwayName='{e.Value.Name}', rawVdsCount={res.Count}");
 
-                    foreach (VdsTrafficResult trafficResult in trafficResults)
+                    result.Add(e.Key, [.. res.Select(res =>
                     {
-                        trafficResult.Location.Name = e.Value.Name;
-                    }
+                        res.Location.Name = e.Value.Name;
+                        return res;
+                    })]);
+
+                    Debug.WriteLine(
+                        $"[RequestTrafficByPosService] highwayNo={e.Key}, highwayName='{e.Value.Name}', filteredVdsCount={result[e.Key].Count}");
                 }
 
+                Debug.WriteLine(
+                    $"[RequestTrafficByPosService] totalHighways={result.Count}, totalVds={result.Values.Sum(list => list.Count)}");
                 return result;
             }
             catch (Exception ex)
@@ -84,7 +93,12 @@ namespace TrafficForm.App
             {
                 List<VdsTrafficResult> result = await publicTrafficApiPort.GetTrafficResult(highwayNo, command.MinLongitude, command.MinLatitude, command.MaxLongitude, command.MaxLatitude);
 
-                List<VdsTrafficResult> filtered = result.Where(e => validateTrafficResult(e)).ToList();
+                Debug.WriteLine(
+                    $"[RequestTrafficByPosService.GetTrafficResult] highwayNo={highwayNo}, apiResultCount={result.Count}");
+
+                List<VdsTrafficResult> filtered = result.Where(e => IsValidTrafficResult(e)).ToList();
+                Debug.WriteLine(
+                    $"[RequestTrafficByPosService.GetTrafficResult] highwayNo={highwayNo}, filteredCount={filtered.Count}");
                 return filtered;
             }catch (TrafficResultRequestFailedException ex) {
                 // TODO : 공공 교통량 데이터를 조회에 실패했을 때 롤백 작업이 필요함.
@@ -92,15 +106,50 @@ namespace TrafficForm.App
 
             }
         }
-        static bool validateTrafficResult(VdsTrafficResult e)
+        static bool IsValidTrafficResult(VdsTrafficResult e)
         {
-            return string.IsNullOrEmpty(e.Location.Name)
-                                || DateTime.Parse(e.CollectedDate) >= DateTime.Now.AddDays(1)
-                                || e.Volume < 0
-                                || e.Occupancy < 0;
+            if (e.Location == null || e.Volume < 0 || e.Occupancy < 0)
+            {
+                return false;
+            }
+
+            if (!TryParseCollectedDate(e.CollectedDate, out DateTime collectedAt))
+            {
+                Debug.WriteLine(
+                    $"[RequestTrafficByPosService.GetTrafficResult] invalid CollectedDate='{e.CollectedDate}' for vdsId='{e.VdsId}'");
+                return false;
+            }
+
+            return collectedAt < DateTime.Now.AddDays(1);
         }
 
 
         private Func<UpdateSelectedPosTrafficInfoCommand, Location> mapper = (command)=> new Location() { Latitude = command.Latitude, Longitude = command.Longitude };
+
+        private static bool TryParseCollectedDate(string value, out DateTime parsed)
+        {
+            string[] formats =
+            {
+                "yyyyMMddHHmmss",
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-ddTHH:mm:ss"
+            };
+
+            if (DateTime.TryParseExact(
+                value,
+                formats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out parsed))
+            {
+                return true;
+            }
+
+            return DateTime.TryParse(
+                value,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out parsed);
+        }
     }
 }

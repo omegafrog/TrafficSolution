@@ -53,8 +53,6 @@ namespace TrafficForm
             filterPanel.SizeChanged -= FilterPanel_SizeChanged;
             filterPanel.SizeChanged += FilterPanel_SizeChanged;
 
-            InitializeRoadSearchUi();
-
             _rightPanelHeaderPanel.Dock = DockStyle.None;
             _rightPanelHeaderPanel.Height = RightPanelModeCardMinHeight;
             _rightPanelHeaderPanel.Margin = new Padding(0, 0, 0, 10);
@@ -118,12 +116,6 @@ namespace TrafficForm
                 filterPanel.Controls.Add(_rightPanelHeaderPanel);
             }
 
-            if (!filterPanel.Controls.Contains(_roadSearchPanel))
-            {
-                filterPanel.Controls.Add(_roadSearchPanel);
-                filterPanel.Controls.SetChildIndex(_roadSearchPanel, 0);
-            }
-
             EnsureLeftFavoritesPanelAttached();
 
             UpdateLeftPanelModeLayout();
@@ -140,18 +132,8 @@ namespace TrafficForm
         private void UpdateLeftPanelModeLayout()
         {
             int availableWidth = Math.Max(120, filterPanel.ClientSize.Width - filterPanel.Padding.Horizontal - 1);
-            _roadSearchPanel.Width = availableWidth;
             _rightPanelHeaderPanel.Width = availableWidth;
             UpdateLeftPanelTopFavoritesLayout();
-
-            int searchContentWidth = Math.Max(80, availableWidth - _roadSearchPanel.Padding.Horizontal - 2);
-            _roadSearchLayout.MaximumSize = new Size(searchContentWidth, 0);
-            _roadSearchHintLabel.MaximumSize = new Size(searchContentWidth, 0);
-            _roadSearchTextBox.Width = Math.Max(80, searchContentWidth - _roadSearchButton.Width - 12);
-            _roadSearchLayout.PerformLayout();
-            int preferredSearchContentHeight = _roadSearchLayout.GetPreferredSize(new Size(searchContentWidth, 0)).Height;
-            int preferredSearchPanelHeight = preferredSearchContentHeight + _roadSearchPanel.Padding.Vertical + 2;
-            _roadSearchPanel.Height = Math.Max(RoadSearchCardMinHeight, preferredSearchPanelHeight);
 
             int contentWidth = Math.Max(80, availableWidth - _rightPanelHeaderPanel.Padding.Horizontal - 2);
             _rightPanelModeLayout.MaximumSize = new Size(contentWidth, 0);
@@ -168,6 +150,8 @@ namespace TrafficForm
             _rightPanelModeHintLabel.Text = _rightPanelMode == RightPanelMode.Cctv
                 ? "좌표 선택 시 CCTV 마커/카드를 표시합니다."
                 : "좌표 선택 시 혼잡도(VDS) 목록을 표시합니다.";
+
+            UpdateRoadNameSearchHint();
 
             if (_rightPanelHeaderPanel.IsHandleCreated)
             {

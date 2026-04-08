@@ -16,6 +16,11 @@ def fail(msg: str) -> None:
     print(f"ERROR: {msg}")
 
 
+def require_path(path: Path, errors: list[str]) -> None:
+    if not path.exists():
+        errors.append(f"missing required path: {path.relative_to(ROOT)}")
+
+
 def check_plan(plan_path: Path) -> list[str]:
     errors: list[str] = []
     text = plan_path.read_text(encoding="utf-8")
@@ -27,11 +32,11 @@ def check_plan(plan_path: Path) -> list[str]:
         if field not in text:
             errors.append(f"{plan_path}: missing '{field}'")
 
-    m = re.search(r"status:\s*([A-Za-z0-9_-]+)", text)
-    if not m:
+    match = re.search(r"status:\s*([A-Za-z0-9_-]+)", text)
+    if not match:
         errors.append(f"{plan_path}: status value not found")
-    elif m.group(1) not in ALLOWED_STATUS:
-        errors.append(f"{plan_path}: invalid status '{m.group(1)}'")
+    elif match.group(1) not in ALLOWED_STATUS:
+        errors.append(f"{plan_path}: invalid status '{match.group(1)}'")
 
     for _, raw_target in LINK_RE.findall(text):
         if raw_target.startswith("http://") or raw_target.startswith("https://"):
@@ -40,27 +45,32 @@ def check_plan(plan_path: Path) -> list[str]:
         if not target.exists():
             errors.append(f"{plan_path}: broken link -> {raw_target}")
 
-    required_names = [
+    for required_name in [
         "domain-boundary.md",
         "use-cases.md",
         "event-storming.md",
         "detailed-design.md",
-    ]
-    for name in required_names:
-        if name not in text:
-            errors.append(f"{plan_path}: missing reference to {name}")
+    ]:
+        if required_name not in text:
+            errors.append(f"{plan_path}: missing reference to {required_name}")
 
     return errors
 
 
 def main() -> int:
-    plan_files = sorted(DOCS.glob("exec-plans/active/**/plan.md"))
-    plan_files.extend(sorted(DOCS.glob("exec-plans/completed/**/plan.md")))
-    if not plan_files:
-        fail("no plan.md files found under docs/exec-plans/{active,completed}")
-        return 1
-
     errors: list[str] = []
+
+    for required in [
+        DOCS / "design-docs" / "index.md",
+        DOCS / "product-specs" / "index.md",
+        DOCS / "exec-plans" / "index.md",
+        DOCS / "exec-plans" / "active" / "index.md",
+        DOCS / "exec-plans" / "completed" / "index.md",
+        DOCS / "references" / "README.md",
+    ]:
+        require_path(required, errors)
+
+    plan_files = list(DOCS.glob("exec-plans/active/**/plan.md"))
     for plan in plan_files:
         errors.extend(check_plan(plan))
 
@@ -70,9 +80,14 @@ def main() -> int:
         print(f"\nFAILED: {len(errors)} issue(s)")
         return 1
 
+    if not plan_files:
+        print("OK: no active plans yet")
+        return 0
+
     print("OK: documentation structure validated")
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
+

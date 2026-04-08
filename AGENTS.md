@@ -1,185 +1,60 @@
-# TrafficSolution Agent Guide
+# Project Overview
 
-## 프로젝트 개요
-- 이 프로젝트는 공공데이터 API를 이용해서 도로에 설치된 VDS 데이터를 받아오고, 고속도로 혼잡도를 조회하는 서비스다.
-- 서비스는 .NET 10 기반의 C# WinForms 애플리케이션으로 구성된다.
+TrafficSolution is a .NET 10 C# WinForms application that uses public traffic data and a local OpenStreetMap tile server to show highway congestion, VDS traffic data, and CCTV information.
 
-## 아키텍처 구성
+The main form is organized into three split panels:
 
-### OpenStreetMap Tile Server
-- 남한 지도 타일을 제공한다.
-- Docker로 구성되어 있으며 `8080` 포트로 타일 서빙을 한다.
+- Left: filters and mode controls
+- Center: WebView2 map backed by the local tile server
+- Right: hidden by default, shows VDS and CCTV result cards when a highway is selected
 
-### Geo Postgres DB
-- Tile Server Docker 내부에 위치한다.
-- OpenStreet 남한 지도 데이터를 저장한다.
-- `localhost:5432`로 접근 가능하다.
-- 계정: `renderer` / `renderer`
-- 주요 테이블:
-  - `vds`: VDS ID, 도로이정, 도로번호, 도로명 등
-  - `vds_loc`: 도로이정 기준 위도/경도 좌표
+# Build/Test Commands
 
-### WinForms App
-- 서비스 UI를 제공한다.
+- `dotnet build TrafficSolution.slnx`: builds the solution.
+- `dotnet test TrafficSolution.slnx`: runs the full unit test suite.
 
-## 메인 폼 UI 구조
-- 메인 폼은 의미적으로 3개의 split panel 구조를 가진다.
-- 좌측: 필터 및 모드 변경 UI
-- 중앙: WebView2 기반 지도 UI (OpenStreet Tile Server 사용)
-- 우측: 기본 숨김 상태, 고속도로 주변 클릭 시 VDS 정보 리스트를 카드 형태로 표시
+If these commands become inaccurate, update this file instead of guessing.
 
-## 유스케이스
-- 지도 드래그/줌인/줌아웃
-- 지도 특정 위치 클릭 시 주변 반경 내 고속도로 선택
-- 현재 지도 뷰 범위 내 도로 혼잡도/정보 조회
-- 선택 도로 혼잡도를 다단계 색상으로 하이라이트
-- 혼잡도 조회 모드/CCTV 조회 모드 전환
-- 도로 내 CCTV 실시간 화면 조회
-- 도로명 검색 및 줌 아웃 상태에서 도로 혼잡도 하이라이트/수치 조회
-- 자주 보는 위치 및 검색 도로 결과 저장
-- 검색된 VDS 마커 표시 및 클릭 시 우측 VDS 리스트 하이라이트 연동
+# Documentation Navigation
 
-## 유비쿼터스 언어
-- `vds`: 도로 구간마다 설치되어 속도, 혼잡도, 볼륨 등을 측정하는 센서
-- `도로이정`: 기준점으로부터의 거리 기반 도로 위치 지표
-  - 예: 1번 도로의 도로이정 1.4는 1번 도로 기준점에서 1.4만큼 떨어진 지점
-- `SRID`: 좌표계 식별자
-  - 대표 예시: `EPSG:4326`(WGS84, 도 단위), `EPSG:3857`(WGS84, 미터 단위)
+- [docs/design-docs](docs/design-docs/index.md): design decisions, architecture notes, and design verification artifacts.
+- [docs/product-specs](docs/product-specs/index.md): product requirements, functional requirements, and use cases.
+- [docs/exec-plans/active](docs/exec-plans/active/index.md): active execution plans for `orchestrate-plan`.
+- [docs/exec-plans/completed](docs/exec-plans/completed/index.md): archived execution plans.
+- `docs/generated`: generated artifacts that should remain in the repository.
+- [docs/references](docs/references/README.md): supporting references for agents and developers.
 
-## 용어 매핑 표
-| 도메인 표준 용어 | 코드/레거시 표기 | 비고 |
-|---|---|---|
-| VDS | `vds`, `VDS_ID`, `vds_loc` | 프로젝트 표준 용어 |
-| VDS | `vdi` | 레거시/오기 표기, 의미는 VDS와 동일 |
-| 도로이정 | `지점이정`, `이정` | 조인/위치 식별 기준 |
+# Documentation Policy
 
-## 좌표계/공간데이터 규칙
-- 시스템 최종 출력 및 외부 인터페이스 좌표계는 항상 `EPSG:4326`을 사용한다.
-- 내부 공간 연산에서 `EPSG:3857`을 사용할 수 있으나, 최종 반환 전에 반드시 `EPSG:4326`으로 변환한다.
+- `docs/` is the source of truth.
+- Planning work for `orchestrate-plan` must be created under `docs/`.
+- Any planning docs under `docs/` must be validated with `python3 scripts/validate_docs.py`.
 
-## 남한 범위 제한 규칙 (타일/조회 최적화)
-- 타일 로드율 및 조회 부하를 줄이기 위해 검색/조회 좌표는 남한 범위 내에서만 사용한다.
-- 기준 상수(단일 기준):
-  - `MIN_LATITUDE = 33.0`
-  - `MAX_LATITUDE = 39.0`
-  - `MIN_LONGITUDE = 125.0`
-  - `MAX_LONGITUDE = 132.0`
-- 지도 클릭 시 현재 뷰 bounds(`minLon`, `minLat`, `maxLon`, `maxLat`)를 함께 수집하고 조회 요청에 전달한다.
-- 조회는 min/max latitude/longitude 조건으로 필터링한다.
+# Constraints
 
-## SERVICE_KEY 관리 규칙
-- 공공데이터 API 키는 `SERVICE_KEY` 환경변수로만 주입한다.
-- 실제 키 값은 소스코드/문서/커밋에 직접 기록하지 않는다.
-- 로컬 설정 파일에는 실키 대신 placeholder를 사용한다.
-- 키 노출 시 즉시 폐기(rotate)하고 재발급한다.
-- 운영 환경에서는 시크릿 저장소 또는 배포 플랫폼 비밀변수로 관리한다.
+- Final and external coordinates must use `EPSG:4326`; internal spatial math may use `EPSG:3857`, but must convert back before returning values.
+- Restrict map/search/query coordinates to South Korea bounds only: `MIN_LATITUDE = 33.0`, `MAX_LATITUDE = 39.0`, `MIN_LONGITUDE = 125.0`, `MAX_LONGITUDE = 132.0`.
+- When a map click is used for lookup, pass the current view bounds and filter queries by min/max latitude and longitude.
+- Public API keys must come from environment variables only. Do not commit real keys or put them in docs or source.
+- Use `SERVICE_KEY` for VDS public data and `CCTV_SERVICE_KEY` for CCTV public data.
+- Treat `Form` code as UI only. `Program.cs` is the composition root. Services depend on ports, adapters implement ports, and domain logic belongs in `Domain`.
+- Keep dependency injection constructor-based and store external dependencies in fields.
+- Write new or changed tests only in `TestProject1`, and keep them focused on unit-level policy/contract behavior.
+- Do not use `NotImplementedException` as an operational failure path.
+- Custom exceptions must carry both `ExceptionCode` and `Description`.
+- After code changes, run build first and then the full unit test suite. Do not launch the app after build.
 
-## 개발 아키텍처 원칙
-- `Form` 코드는 UI 계층으로 취급한다.
-- `Program.cs`가 메인 메소드이며 의존성 조립(Composition Root)을 담당한다.
-- Form은 Service를 호출한다.
-- Service는 외부 액터를 직접 의존하지 않고 Port(인터페이스)를 의존한다.
-- Adapter는 Port 인터페이스를 구현한다.
-- Domain 디렉토리에는 도메인 모델/도메인 로직을 작성하며, 비즈니스 로직은 가능한 Domain 메서드로 캡슐화한다.
+# Validation
 
-## 의존성 주입 규칙
-- 외부 의존성이 필요한 클래스는 필드(지역 상태)로 의존성을 보관한다.
-- 의존성은 생성자 파라미터로 받아서 필드를 초기화한다.
-- Service는 Port 타입을 생성자에서 주입받아 사용한다.
+After creating or updating planning docs under `docs/`, run:
 
-## 기능 설계 프로세스 (이벤트 스토밍 기반)
-1. 기능이 속한 도메인을 먼저 정한다.
-2. 해당 도메인에서 액터와 액션을 정의한다.
-3. 정의된 액터/액션으로 유스케이스를 작성한다.
-4. 유스케이스를 바탕으로 이벤트 스토밍을 수행한다.
-5. 이벤트 스토밍 결과를 바탕으로 구조를 설계한다.
-
-## 설계 결과물 문서화 규칙
-- 유스케이스/이벤트 스토밍을 수행한 기능은 반드시 `docs/`에 설계 결과물을 남긴다.
-- 설계 문서에는 최소 다음 항목을 포함한다.
-  1. 설계 배경/문제 정의
-  2. 도메인, 액터/액션, 유스케이스(성공 시나리오/완료 기준)
-  3. 이벤트 스토밍 결과(Command, Event, Policy, Read Model, Aggregate)
-  4. 코드 반영 매핑(변경 파일 경로)
-  5. 후속 개선 포인트(선택)
-- 신규 설계 문서 추가 시, 관련 기존 문서(`docs/usecase-spec.md`, README 등)와의 연결 링크를 함께 정리한다.
-- 코드 변경 없이 설계만 수행한 경우에도 문서 산출물은 동일하게 남긴다.
-
-## 서비스/커맨드/이벤트 매핑 규칙
-- 유스케이스 명으로 Service 클래스를 작성한다.
-- 커맨드는 Service 메소드명/입력 파라미터 명으로 사용한다.
-- 이벤트는 메소드의 중간 결과, 최종 리턴 값, 또는 외부 이벤트 시스템 발행 메시지로 정의한다.
-- 위 구조는 기본 가이드이며, 모든 경우에 절대적으로 고정되는 규칙은 아니다.
-
-## 테스트 전략
-- 테스트는 단위 테스트만 작성한다.
-- 단위 테스트는 비즈니스 로직의 Policy와 Contract만 검증한다.
-- 구현 디테일(UI 동작 디테일, 인프라 통신 세부 구현, 내부 구현 세부 구조)에 결합된 테스트는 지양한다.
-- 신규/수정 테스트 코드는 반드시 `TestProject1` 프로젝트에 작성한다.
-
-## 예외/실패 처리 정책
-- 예외는 공통 예외(Common Exception)와 유스케이스별 예외(UseCase Exception)로 분리한다.
-- 모든 커스텀 예외는 반드시 예외 코드(`ExceptionCode`)와 설명(`Description`)을 포함해야 한다.
-- 예외를 던질 때 코드/설명이 누락되면 안 된다.
-- `NotImplementedException`을 운영 실패 흐름의 대체 수단으로 사용하지 않는다.
-
-## 예외 코드 문서 동기화 정책
-- 예외 코드와 Exception 정의 매핑 문서를 별도로 관리한다.
-- 문서 예시 경로: `docs/exception-codes.md`
-- 예외 클래스 변경(추가/수정/삭제) 시 예외 코드 문서를 반드시 동시에 갱신한다.
-- 코드와 문서의 불일치는 허용하지 않는다.
-
-## 코드 작성 완료 후 검증/보고 규칙
-- 코드 작성 완료 후 반드시 다음 순서를 수행한다.
-  1. Build 실행
-  2. 전체 단위 테스트 실행
-  3. Build 및 전체 단위 테스트 모두 통과 확인
-- Build 이후에는 애플리케이션 실행을 하지 않는다.
-- 작업 완료 시에는 완료 알림을 전달하고, 변경점 기준으로 사용자가 직접 검증할 체크리스트만 제공한다.
-
-## Git/PR 작성 규칙
-- 커밋은 기능/수정/테스트/문서 등 논리 단위로 잘게 나눈 여러 개의 커밋으로 작성한다.
-- 사용자가 커밋을 요청한 경우에도 "커밋할 시 작은 단위로 커밋" 원칙을 동일하게 적용한다.
-- 각 커밋은 하나의 의도만 담고, 독립적으로 리뷰/롤백 가능해야 한다.
-- PR 본문에는 변경 배경, 핵심 변경점, 검증 결과, 리스크/후속 작업을 충분히 작성한다.
-
-### PR 본문 작성 템플릿 (상세)
-- PR 본문은 아래 섹션 순서를 기본으로 고정한다.
-  1. `변경 배경 / 의도`
-  2. `코드 변경점 (상세)`
-  3. `커밋 구성 (작은 단위)`
-  4. `검증 결과`
-  5. `리스크 및 후속 작업`
-- `변경 배경 / 의도`에는 왜 이 변경이 필요한지, 어떤 사용자 흐름/운영 문제를 해결하는지 작성한다.
-- `코드 변경점 (상세)`에는 계층/주제(예: 도메인, 서비스, 어댑터, UI, 설정)별로 파일 경로를 명시하고 변경 이유를 함께 적는다.
-- `커밋 구성 (작은 단위)`에는 PR에 포함된 커밋을 해시 + 제목으로 나열하고, 커밋 분리가 논리 단위임을 리뷰어가 한눈에 이해할 수 있게 작성한다.
-- `검증 결과`에는 실제 실행한 명령어를 그대로 적고, 성공/실패 여부와 실패 시 환경 원인(타깃 프레임워크, 런타임 부재 등)을 구체적으로 남긴다.
-- `리스크 및 후속 작업`에는 당장 병합 가능한 범위와 추가로 필요한 검증/운영 조치를 분리해 기록한다.
-- 테스트/빌드가 환경 제약으로 일부 미실행인 경우에도, 생략하지 말고 실패 원인과 재검증 조건(예: Windows runner 필요)을 반드시 명시한다.
-
-### PR 본문 예시 스켈레톤
-```md
-## 변경 배경 / 의도
-- ...
-
-## 코드 변경점 (상세)
-### 1) 도메인/포트
-- `path/to/file`: 변경 내용 + 의도
-
-### 2) 서비스/어댑터
-- `path/to/file`: 변경 내용 + 의도
-
-### 3) UI/설정
-- `path/to/file`: 변경 내용 + 의도
-
-## 커밋 구성 (작은 단위)
-- `abc1234` feat: ...
-- `def5678` refactor: ...
-
-## 검증 결과
-- Build: `dotnet build ...` ✅
-- Test: `dotnet test ...` ⚠️ (실패 원인)
-
-## 리스크 및 후속 작업
-- ...
+```bash
+python3 scripts/validate_docs.py
 ```
+
+If validation fails:
+
+- do not ignore failures
+- fix broken links, missing required sections, or invalid properties
+- rerun the command until it passes
+
