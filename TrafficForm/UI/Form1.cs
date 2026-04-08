@@ -942,17 +942,23 @@ namespace TrafficForm
             return (adjustedLatitude, adjustedLongitude);
         }
 
-        private async Task ShowHighwayPanel(List<VdsTrafficResult> results)
+        private async Task ShowHighwayPanel(List<VdsTrafficResult> results, bool ensureVisible = true)
         {
             foreach (CctvListControl existingCctvControl in flowLayoutPanel1.Controls.OfType<CctvListControl>())
             {
                 existingCctvControl.CardClicked -= CctvListControl_CardClicked;
             }
 
-            detailPanelOpen = true;
+            if (ensureVisible)
+            {
+                detailPanelOpen = true;
+            }
             detailPanelWidth = ReducedRightPanelWidth;
-            SetRightPanelContentMode(RightPanelContentMode.Results);
-            EnsureRightPanelVisible();
+            SetRightPanelContentMode(RightPanelContentMode.Results, ensureVisible);
+            if (ensureVisible)
+            {
+                EnsureRightPanelVisible();
+            }
 
             SelectTrafficControl(null);
             SelectCctvControl(null);
@@ -1014,7 +1020,10 @@ namespace TrafficForm
             }
 
             highwaylistContainer.PerformLayout();
-            EnsureRightPanelVisible();
+            if (ensureVisible)
+            {
+                EnsureRightPanelVisible();
+            }
             flowLayoutPanel1.ResumeLayout();
             flowLayoutPanel1.PerformLayout();
 

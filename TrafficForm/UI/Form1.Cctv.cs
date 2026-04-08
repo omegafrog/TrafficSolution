@@ -189,7 +189,7 @@ namespace TrafficForm
 
             _rightPanelMode = nextMode;
             UpdateRightPanelModeHint();
-            await RenderActiveRightPanelModeAsync();
+            await RenderActiveRightPanelModeAsync(detailPanelOpen);
 
             if (_rightPanelMode == RightPanelMode.Cctv)
             {
@@ -201,15 +201,15 @@ namespace TrafficForm
             }
         }
 
-        private async Task RenderActiveRightPanelModeAsync()
+        private async Task RenderActiveRightPanelModeAsync(bool ensureVisible = true)
         {
             if (_rightPanelMode == RightPanelMode.Cctv)
             {
-                await ShowCctvPanel(_latestCctvResults);
+                await ShowCctvPanel(_latestCctvResults, ensureVisible);
             }
             else
             {
-                await ShowHighwayPanel(_latestTrafficResults);
+                await ShowHighwayPanel(_latestTrafficResults, ensureVisible);
             }
         }
 
@@ -336,17 +336,23 @@ namespace TrafficForm
             }
         }
 
-        private async Task ShowCctvPanel(List<CctvInfo> results)
+        private async Task ShowCctvPanel(List<CctvInfo> results, bool ensureVisible = true)
         {
             foreach (CctvListControl existingCctvControl in flowLayoutPanel1.Controls.OfType<CctvListControl>())
             {
                 existingCctvControl.CardClicked -= CctvListControl_CardClicked;
             }
 
-            detailPanelOpen = true;
+            if (ensureVisible)
+            {
+                detailPanelOpen = true;
+            }
             detailPanelWidth = ReducedRightPanelWidth;
-            SetRightPanelContentMode(RightPanelContentMode.Results);
-            EnsureRightPanelVisible();
+            SetRightPanelContentMode(RightPanelContentMode.Results, ensureVisible);
+            if (ensureVisible)
+            {
+                EnsureRightPanelVisible();
+            }
 
             SelectTrafficControl(null);
             SelectCctvControl(null);
@@ -390,7 +396,10 @@ namespace TrafficForm
             highwaylistContainer.PerformLayout();
             flowLayoutPanel1.ResumeLayout();
             flowLayoutPanel1.PerformLayout();
-            EnsureRightPanelVisible();
+            if (ensureVisible)
+            {
+                EnsureRightPanelVisible();
+            }
             ResizeRightPanelCards();
         }
 
