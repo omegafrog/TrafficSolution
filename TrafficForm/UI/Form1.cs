@@ -28,6 +28,7 @@ namespace TrafficForm
         private readonly Label _searchSummaryTitleLabel = new Label();
         private readonly Label _searchSummaryCountLabel = new Label();
         private readonly Label _searchSummaryDetailLabel = new Label();
+        private readonly TableLayoutPanel _resultsPanel = new TableLayoutPanel();
         private readonly Panel _roadNameSearchPanel = new Panel();
         private readonly TableLayoutPanel _roadNameSearchLayout = new TableLayoutPanel();
         private readonly Label _roadNameSearchTitleLabel = new Label();
@@ -330,9 +331,21 @@ namespace TrafficForm
             flowLayoutPanel1.SizeChanged -= FlowLayoutPanel1_SizeChanged;
             flowLayoutPanel1.SizeChanged += FlowLayoutPanel1_SizeChanged;
 
+            _resultsPanel.BackColor = panelBackground;
+            _resultsPanel.ColumnCount = 1;
+            _resultsPanel.RowCount = 2;
+            _resultsPanel.Dock = DockStyle.Fill;
+            _resultsPanel.Margin = Padding.Empty;
+            _resultsPanel.Padding = Padding.Empty;
+            _resultsPanel.ColumnStyles.Clear();
+            _resultsPanel.RowStyles.Clear();
+            _resultsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            _resultsPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 90F));
+            _resultsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
             _searchSummaryPanel.BackColor = Color.FromArgb(227, 236, 250);
             _searchSummaryPanel.BorderStyle = BorderStyle.FixedSingle;
-            _searchSummaryPanel.Dock = DockStyle.Top;
+            _searchSummaryPanel.Dock = DockStyle.Fill;
             _searchSummaryPanel.Height = 90;
             _searchSummaryPanel.Margin = Padding.Empty;
 
@@ -359,21 +372,23 @@ namespace TrafficForm
             _searchSummaryPanel.Controls.Add(_searchSummaryCountLabel);
             _searchSummaryPanel.Controls.Add(_searchSummaryDetailLabel);
 
-            if (!highwaylistContainer.Panel2.Controls.Contains(_searchSummaryPanel))
+            _resultsPanel.Controls.Clear();
+            _resultsPanel.Controls.Add(_searchSummaryPanel, 0, 0);
+            _resultsPanel.Controls.Add(flowLayoutPanel1, 0, 1);
+
+            if (flowLayoutPanel1.Parent != _resultsPanel)
             {
-                highwaylistContainer.Panel2.Controls.Add(_searchSummaryPanel);
+                highwaylistContainer.Panel2.Controls.Remove(flowLayoutPanel1);
             }
 
-            if (highwaylistContainer.Panel2.Controls.Contains(flowLayoutPanel1))
+            if (_searchSummaryPanel.Parent != _resultsPanel)
             {
-                highwaylistContainer.Panel2.Controls.SetChildIndex(flowLayoutPanel1, 0);
+                highwaylistContainer.Panel2.Controls.Remove(_searchSummaryPanel);
             }
 
-            if (highwaylistContainer.Panel2.Controls.Contains(_searchSummaryPanel))
+            if (!highwaylistContainer.Panel2.Controls.Contains(_resultsPanel))
             {
-                highwaylistContainer.Panel2.Controls.SetChildIndex(
-                    _searchSummaryPanel,
-                    highwaylistContainer.Panel2.Controls.Count - 1);
+                highwaylistContainer.Panel2.Controls.Add(_resultsPanel);
             }
 
             highwaylistContainer.Panel2.PerformLayout();
