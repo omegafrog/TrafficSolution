@@ -79,6 +79,7 @@ namespace TrafficForm
         public Form1()
         {
             InitializeComponent();
+            InitializeDataMenuActions();
             InitializeStatusStripUi();
             InitializeMapModeUi();
             InitializeRoadNameSearchUi();
@@ -95,6 +96,7 @@ namespace TrafficForm
             RoadNameSearchService roadNameSearchService)
         {
             InitializeComponent();
+            InitializeDataMenuActions();
             _requestTrafficByPosService = requestTrafficByPosService;
             _requestCctvByPosService = requestCctvByPosService;
             _favoriteService = favoriteService;
@@ -120,6 +122,50 @@ namespace TrafficForm
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void InitializeDataMenuActions()
+        {
+            새로고침ToolStripMenuItem.Click -= 새로고침ToolStripMenuItem_Click;
+            새로고침ToolStripMenuItem.Click += 새로고침ToolStripMenuItem_Click;
+        }
+
+        private async void 새로고침ToolStripMenuItem_Click(object? sender, EventArgs e)
+        {
+            await RefreshTrafficDataFromLatestSelectionAsync();
+        }
+
+        private async Task RefreshTrafficDataFromLatestSelectionAsync()
+        {
+            if (_isTrafficLookupInProgress)
+            {
+                SetStatusMessage("이미 혼잡도 조회 중입니다. 잠시만 기다려주세요.", true);
+                return;
+            }
+
+            if (_latestTrafficSelectionCommand == null)
+            {
+                SetStatusMessage("새로고침할 VDS 조회 이력이 없습니다. 지도에서 좌표를 먼저 선택하세요.", false);
+                return;
+            }
+
+            if (_rightPanelMode != RightPanelMode.Traffic)
+            {
+                await SetRightPanelModeAsync(RightPanelMode.Traffic);
+            }
+
+            UpdateSelectedPosTrafficInfoCommand command = new(_latestTrafficSelectionCommand.Latitude, _latestTrafficSelectionCommand.Longitude)
+            {
+                MinLongitude = _latestTrafficSelectionCommand.MinLongitude,
+                MinLatitude = _latestTrafficSelectionCommand.MinLatitude,
+                MaxLongitude = _latestTrafficSelectionCommand.MaxLongitude,
+                MaxLatitude = _latestTrafficSelectionCommand.MaxLatitude
+            };
+
+            IReadOnlyList<int>? selectedHighwayNumbers = _latestTrafficHighwayNumbers.Count > 0
+                ? _latestTrafficHighwayNumbers
+                : null;
+            await RunTrafficLookupAsync(command, selectedHighwayNumbers);
         }
 
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e)
