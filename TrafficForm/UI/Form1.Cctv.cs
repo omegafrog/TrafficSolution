@@ -152,6 +152,8 @@ namespace TrafficForm
                 ? "좌표 선택 시 CCTV 마커/카드를 표시합니다."
                 : "좌표 선택 시 혼잡도(VDS) 목록을 표시합니다.";
 
+            UpdateRoadNameSearchHint();
+
             if (_rightPanelHeaderPanel.IsHandleCreated)
             {
                 UpdateLeftPanelModeLayout();
@@ -194,13 +196,16 @@ namespace TrafficForm
             if (nextMode == RightPanelMode.Cctv && _latestCctvSelectionCommand != null && !_isCctvLookupInProgress)
             {
                 SetStatusMessage("CCTV 모드로 전환 중입니다. 현재 고속도로의 CCTV를 조회합니다...", true);
-                await UpdateSelectedPosCctvInfoAsync(_latestCctvSelectionCommand, "모드 전환");
+                await RunCctvLookupAsync(_latestCctvSelectionCommand);
                 reQueryTriggered = true;
             }
             else if (nextMode == RightPanelMode.Traffic && _latestTrafficSelectionCommand != null && !_isTrafficLookupInProgress)
             {
                 SetStatusMessage("혼잡도 모드로 전환 중입니다. 현재 고속도로의 혼잡도를 조회합니다...", true);
-                await UpdateSelectedPosTrafficInfoAsync(_latestTrafficSelectionCommand, "모드 전환");
+                IReadOnlyList<int>? selectedHighwayNumbers = _latestTrafficHighwayNumbers.Count > 0
+                    ? _latestTrafficHighwayNumbers
+                    : null;
+                await RunTrafficLookupAsync(_latestTrafficSelectionCommand, selectedHighwayNumbers);
                 reQueryTriggered = true;
             }
 
@@ -258,14 +263,31 @@ namespace TrafficForm
             _latestCctvResults.AddRange(results);
         }
 
-        private async Task UpdateSelectedPosCctvInfoFromMessage(string message)
+        private void ClearCctvLookupContext()
         {
-            if (_requestCctvByPosService == null)
+            CacheLatestCctvResults(Array.Empty<CctvInfo>());
+        }
+
+        private async Task ClearCurrentLookupContextAsync(string statusMessage)
+        {
+            _latestRoadSearchHighwayNames.Clear();
+
+            if (_rightPanelMode == RightPanelMode.Cctv)
             {
-                SetStatusMessage("CCTV 조회 서비스가 초기화되지 않았습니다.", false);
-                return;
+                ClearCctvLookupContext();
+                await ShowCctvPanel(_latestCctvResults);
+            }
+            else
+            {
+                ClearTrafficLookupContext();
+                await ShowHighwayPanel(_latestTrafficResults);
             }
 
+            SetStatusMessage(statusMessage, false);
+        }
+
+        private async Task UpdateSelectedPosCctvInfoFromMessage(string message)
+        {
             string normalized = NormalizeSelectionMessage(message);
             UpdateSelectedPosCctvInfoCommand? data = JsonSerializer.Deserialize<UpdateSelectedPosCctvInfoCommand>(normalized);
 
@@ -275,10 +297,13 @@ namespace TrafficForm
                 return;
             }
 
-            await UpdateSelectedPosCctvInfoAsync(data, "지도 선택");
+            await RunCctvLookupAsync(data);
         }
 
-        private async Task UpdateSelectedPosCctvInfoAsync(UpdateSelectedPosCctvInfoCommand data, string trigger)
+        private async Task RunCctvLookupAsync(
+            UpdateSelectedPosCctvInfoCommand command,
+            int? selectedHighwayNo = null,
+            string? selectedHighwayName = null)
         {
             if (_requestCctvByPosService == null)
             {
@@ -286,17 +311,29 @@ namespace TrafficForm
                 return;
             }
 
-            _latestCctvSelectionCommand = data;
-            int requestVersion = System.Threading.Interlocked.Increment(ref _cctvLookupRequestVersion);
+            if (_isCctvLookupInProgress)
+            {
+                SetStatusMessage("이미 CCTV 조회 중입니다. 잠시만 기다려주세요.", true);
+                return;
+            }
 
+            int requestVersion = System.Threading.Interlocked.Increment(ref _cctvLookupRequestVersion);
             _isCctvLookupInProgress = true;
-            _mapInteractionModeComboBox.Enabled = false;
-            _rightPanelModeComboBox.Enabled = false;
-            SetStatusMessage($"{trigger} 좌표를 확인했습니다. 주변 고속도로의 CCTV를 조회 중입니다...", true);
+            SetLookupUiBusy(true);
+            SetStatusMessage(
+                selectedHighwayNo.HasValue
+                    ? $"{selectedHighwayName ?? $"{selectedHighwayNo.Value}번 고속도로"} CCTV를 조회 중입니다..."
+                    : "좌표를 확인했습니다. 주변 고속도로의 CCTV를 조회 중입니다...",
+                true);
 
             try
             {
-                HighwayCctvSelection selection = await _requestCctvByPosService.GetNearbyHighwayCctv(data);
+                HighwayCctvSelection selection = selectedHighwayNo.HasValue
+                    ? await _requestCctvByPosService.GetHighwayCctvAsync(
+                        selectedHighwayNo.Value,
+                        selectedHighwayName ?? $"{selectedHighwayNo.Value}번 고속도로",
+                        command)
+                    : await _requestCctvByPosService.GetNearbyHighwayCctv(command);
 
                 if (requestVersion != _cctvLookupRequestVersion || _rightPanelMode != RightPanelMode.Cctv)
                 {
@@ -317,8 +354,7 @@ namespace TrafficForm
             finally
             {
                 _isCctvLookupInProgress = false;
-                _mapInteractionModeComboBox.Enabled = true;
-                _rightPanelModeComboBox.Enabled = true;
+                SetLookupUiBusy(false);
             }
         }
 
