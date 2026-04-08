@@ -25,7 +25,6 @@ namespace TrafficForm
         private readonly Dictionary<string, CctvListControl> _cctvControlMap = new Dictionary<string, CctvListControl>(StringComparer.Ordinal);
         private readonly List<VdsTrafficResult> _latestTrafficResults = new List<VdsTrafficResult>();
         private readonly List<CctvInfo> _latestCctvResults = new List<CctvInfo>();
-        private UpdateSelectedPosCctvInfoCommand? _latestCctvSelectionCommand;
 
         private readonly Panel _rightPanelHeaderPanel = new Panel();
         private readonly TableLayoutPanel _rightPanelModeLayout = new TableLayoutPanel();
@@ -190,36 +189,15 @@ namespace TrafficForm
 
             _rightPanelMode = nextMode;
             UpdateRightPanelModeHint();
+            await RenderActiveRightPanelModeAsync();
 
-            // Re-query data for the new mode if we have a previous command
-            bool reQueryTriggered = false;
-            if (nextMode == RightPanelMode.Cctv && _latestCctvSelectionCommand != null && !_isCctvLookupInProgress)
+            if (_rightPanelMode == RightPanelMode.Cctv)
             {
-                SetStatusMessage("CCTV 모드로 전환 중입니다. 현재 고속도로의 CCTV를 조회합니다...", true);
-                await RunCctvLookupAsync(_latestCctvSelectionCommand);
-                reQueryTriggered = true;
+                SetStatusMessage("패널 모드가 CCTV 모드로 전환되었습니다.", false);
             }
-            else if (nextMode == RightPanelMode.Traffic && _latestTrafficSelectionCommand != null && !_isTrafficLookupInProgress)
+            else
             {
-                SetStatusMessage("혼잡도 모드로 전환 중입니다. 현재 고속도로의 혼잡도를 조회합니다...", true);
-                IReadOnlyList<int>? selectedHighwayNumbers = _latestTrafficHighwayNumbers.Count > 0
-                    ? _latestTrafficHighwayNumbers
-                    : null;
-                await RunTrafficLookupAsync(_latestTrafficSelectionCommand, selectedHighwayNumbers);
-                reQueryTriggered = true;
-            }
-
-            if (!reQueryTriggered)
-            {
-                await RenderActiveRightPanelModeAsync();
-                if (_rightPanelMode == RightPanelMode.Cctv)
-                {
-                    SetStatusMessage("패널 모드가 CCTV 모드로 전환되었습니다.", false);
-                }
-                else
-                {
-                    SetStatusMessage("패널 모드가 혼잡도 모드로 전환되었습니다.", false);
-                }
+                SetStatusMessage("패널 모드가 혼잡도 모드로 전환되었습니다.", false);
             }
         }
 
