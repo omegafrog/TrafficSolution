@@ -53,6 +53,8 @@ namespace TrafficForm
             filterPanel.SizeChanged -= FilterPanel_SizeChanged;
             filterPanel.SizeChanged += FilterPanel_SizeChanged;
 
+            InitializeRoadSearchUi();
+
             _rightPanelHeaderPanel.Dock = DockStyle.None;
             _rightPanelHeaderPanel.Height = RightPanelModeCardMinHeight;
             _rightPanelHeaderPanel.Margin = new Padding(0, 0, 0, 10);
@@ -116,6 +118,12 @@ namespace TrafficForm
                 filterPanel.Controls.Add(_rightPanelHeaderPanel);
             }
 
+            if (!filterPanel.Controls.Contains(_roadSearchPanel))
+            {
+                filterPanel.Controls.Add(_roadSearchPanel);
+                filterPanel.Controls.SetChildIndex(_roadSearchPanel, 0);
+            }
+
             EnsureLeftFavoritesPanelAttached();
 
             UpdateLeftPanelModeLayout();
@@ -132,8 +140,18 @@ namespace TrafficForm
         private void UpdateLeftPanelModeLayout()
         {
             int availableWidth = Math.Max(120, filterPanel.ClientSize.Width - filterPanel.Padding.Horizontal - 1);
+            _roadSearchPanel.Width = availableWidth;
             _rightPanelHeaderPanel.Width = availableWidth;
             UpdateLeftPanelTopFavoritesLayout();
+
+            int searchContentWidth = Math.Max(80, availableWidth - _roadSearchPanel.Padding.Horizontal - 2);
+            _roadSearchLayout.MaximumSize = new Size(searchContentWidth, 0);
+            _roadSearchHintLabel.MaximumSize = new Size(searchContentWidth, 0);
+            _roadSearchTextBox.Width = Math.Max(80, searchContentWidth - _roadSearchButton.Width - 12);
+            _roadSearchLayout.PerformLayout();
+            int preferredSearchContentHeight = _roadSearchLayout.GetPreferredSize(new Size(searchContentWidth, 0)).Height;
+            int preferredSearchPanelHeight = preferredSearchContentHeight + _roadSearchPanel.Padding.Vertical + 2;
+            _roadSearchPanel.Height = Math.Max(RoadSearchCardMinHeight, preferredSearchPanelHeight);
 
             int contentWidth = Math.Max(80, availableWidth - _rightPanelHeaderPanel.Padding.Horizontal - 2);
             _rightPanelModeLayout.MaximumSize = new Size(contentWidth, 0);
@@ -239,14 +257,31 @@ namespace TrafficForm
             _latestCctvResults.AddRange(results);
         }
 
-        private async Task UpdateSelectedPosCctvInfoFromMessage(string message)
+        private void ClearCctvLookupContext()
         {
-            if (_requestCctvByPosService == null)
+            CacheLatestCctvResults(Array.Empty<CctvInfo>());
+        }
+
+        private async Task ClearCurrentLookupContextAsync(string statusMessage)
+        {
+            _latestRoadSearchHighwayNames.Clear();
+
+            if (_rightPanelMode == RightPanelMode.Cctv)
             {
-                SetStatusMessage("CCTV 조회 서비스가 초기화되지 않았습니다.", false);
-                return;
+                ClearCctvLookupContext();
+                await ShowCctvPanel(_latestCctvResults);
+            }
+            else
+            {
+                ClearTrafficLookupContext();
+                await ShowHighwayPanel(_latestTrafficResults);
             }
 
+            SetStatusMessage(statusMessage, false);
+        }
+
+        private async Task UpdateSelectedPosCctvInfoFromMessage(string message)
+        {
             string normalized = NormalizeSelectionMessage(message);
             UpdateSelectedPosCctvInfoCommand? data = JsonSerializer.Deserialize<UpdateSelectedPosCctvInfoCommand>(normalized);
 
@@ -256,16 +291,43 @@ namespace TrafficForm
                 return;
             }
 
-            int requestVersion = System.Threading.Interlocked.Increment(ref _cctvLookupRequestVersion);
+            await RunCctvLookupAsync(data);
+        }
 
+        private async Task RunCctvLookupAsync(
+            UpdateSelectedPosCctvInfoCommand command,
+            int? selectedHighwayNo = null,
+            string? selectedHighwayName = null)
+        {
+            if (_requestCctvByPosService == null)
+            {
+                SetStatusMessage("CCTV 조회 서비스가 초기화되지 않았습니다.", false);
+                return;
+            }
+
+            if (_isCctvLookupInProgress)
+            {
+                SetStatusMessage("이미 CCTV 조회 중입니다. 잠시만 기다려주세요.", true);
+                return;
+            }
+
+            int requestVersion = System.Threading.Interlocked.Increment(ref _cctvLookupRequestVersion);
             _isCctvLookupInProgress = true;
-            _mapInteractionModeComboBox.Enabled = false;
-            _rightPanelModeComboBox.Enabled = false;
-            SetStatusMessage("좌표를 확인했습니다. 주변 고속도로의 CCTV를 조회 중입니다...", true);
+            SetLookupUiBusy(true);
+            SetStatusMessage(
+                selectedHighwayNo.HasValue
+                    ? $"{selectedHighwayName ?? $"{selectedHighwayNo.Value}번 고속도로"} CCTV를 조회 중입니다..."
+                    : "좌표를 확인했습니다. 주변 고속도로의 CCTV를 조회 중입니다...",
+                true);
 
             try
             {
-                HighwayCctvSelection selection = await _requestCctvByPosService.GetNearbyHighwayCctv(data);
+                HighwayCctvSelection selection = selectedHighwayNo.HasValue
+                    ? await _requestCctvByPosService.GetHighwayCctvAsync(
+                        selectedHighwayNo.Value,
+                        selectedHighwayName ?? $"{selectedHighwayNo.Value}번 고속도로",
+                        command)
+                    : await _requestCctvByPosService.GetNearbyHighwayCctv(command);
 
                 if (requestVersion != _cctvLookupRequestVersion || _rightPanelMode != RightPanelMode.Cctv)
                 {
@@ -286,8 +348,7 @@ namespace TrafficForm
             finally
             {
                 _isCctvLookupInProgress = false;
-                _mapInteractionModeComboBox.Enabled = true;
-                _rightPanelModeComboBox.Enabled = true;
+                SetLookupUiBusy(false);
             }
         }
 

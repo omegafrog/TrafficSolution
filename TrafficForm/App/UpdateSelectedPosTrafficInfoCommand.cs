@@ -22,6 +22,28 @@ namespace TrafficForm.App
         {
             Latitude = latitude;
             Longitude = longitude;
+            MinLongitude = longitude;
+            MinLatitude = latitude;
+            MaxLongitude = longitude;
+            MaxLatitude = latitude;
+        }
+
+        public void NormalizeBounds()
+        {
+            double normalizedMinLongitude = Math.Min(MinLongitude, MaxLongitude);
+            double normalizedMaxLongitude = Math.Max(MinLongitude, MaxLongitude);
+            double normalizedMinLatitude = Math.Min(MinLatitude, MaxLatitude);
+            double normalizedMaxLatitude = Math.Max(MinLatitude, MaxLatitude);
+
+            MinLongitude = Clamp(normalizedMinLongitude, MIN_LONGITUDE, MAX_LONGITUDE);
+            MaxLongitude = Clamp(normalizedMaxLongitude, MIN_LONGITUDE, MAX_LONGITUDE);
+            MinLatitude = Clamp(normalizedMinLatitude, MIN_LATITUDE, MAX_LATITUDE);
+            MaxLatitude = Clamp(normalizedMaxLatitude, MIN_LATITUDE, MAX_LATITUDE);
+        }
+
+        private static double Clamp(double value, double minValue, double maxValue)
+        {
+            return Math.Min(maxValue, Math.Max(minValue, value));
         }
     }
 }
