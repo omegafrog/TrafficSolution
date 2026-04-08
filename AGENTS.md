@@ -12,6 +12,7 @@ The main form is organized into three split panels:
 
 - `dotnet build TrafficSolution.slnx`: builds the solution.
 - `dotnet test TrafficSolution.slnx`: runs the full unit test suite.
+- When creating a new git worktree, place it under the parent directory's `worktrees/` folder, for example `../worktrees/<name>`.
 
 If these commands become inaccurate, update this file instead of guessing.
 
