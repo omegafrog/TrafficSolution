@@ -2,12 +2,14 @@
 
 title: Road-name Search Panel
 owner: Codex
-status: verified
+status: completed
 parent_docs:
 - [README.md](../../../../README.md)
 - [docs/usecase-spec.md](../../../../docs/usecase-spec.md)
 domain: Traffic search / map interaction
 last_verified: 2026-04-08
+completed_at: 2026-04-08
+stop_state_at: 2026-04-08
 
 # Task Summary
 
@@ -54,17 +56,17 @@ Implemented a road-name search input above the map and routed searches into the 
 
 # Documentation Plan
 
-- Update the active planning package under `docs/exec-plans/active/road-name-search-panel/`.
-- Keep `docs/exec-plans/active/index.md` linked to this plan.
+- Update the archived planning package under `docs/exec-plans/completed/road-name-search-panel/`.
+- Keep `docs/exec-plans/completed/index.md` linked to this plan.
 - Preserve the relationship to `README.md` and `docs/usecase-spec.md`.
 
 # Output Files
 
-- `docs/exec-plans/active/road-name-search-panel/plan.md`
-- `docs/exec-plans/active/road-name-search-panel/domain-boundary.md`
-- `docs/exec-plans/active/road-name-search-panel/use-cases.md`
-- `docs/exec-plans/active/road-name-search-panel/event-storming.md`
-- `docs/exec-plans/active/road-name-search-panel/detailed-design.md`
+- `docs/exec-plans/completed/road-name-search-panel/plan.md`
+- `docs/exec-plans/completed/road-name-search-panel/domain-boundary.md`
+- `docs/exec-plans/completed/road-name-search-panel/use-cases.md`
+- `docs/exec-plans/completed/road-name-search-panel/event-storming.md`
+- `docs/exec-plans/completed/road-name-search-panel/detailed-design.md`
 
 # Execution Result
 

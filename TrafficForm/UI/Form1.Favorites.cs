@@ -245,11 +245,6 @@ public partial class Form1
         _favoritesPanel.Controls.Add(_coordinateFavoritesListView);
         _favoritesPanel.Controls.Add(_favoritesHeaderPanel);
 
-        if (!highwaylistContainer.Panel2.Controls.Contains(_favoritesPanel))
-        {
-            highwaylistContainer.Panel2.Controls.Add(_favoritesPanel);
-        }
-
         _favoritesPanelInitialized = true;
         UpdateFavoriteActionButtons();
     }
@@ -279,19 +274,19 @@ public partial class Form1
         if (mode == RightPanelContentMode.Results)
         {
             _favoritesPanel.Visible = false;
-            _searchSummaryPanel.Visible = true;
-            flowLayoutPanel1.Visible = true;
+            _resultsPanel.Visible = true;
+            ShowExclusiveRightPanelContent(_resultsPanel);
             detailPanelWidth = ReducedRightPanelWidth;
             EnsureRightPanelVisible();
         }
         else
         {
             _favoritesPanel.Visible = true;
-            _searchSummaryPanel.Visible = false;
-            flowLayoutPanel1.Visible = false;
+            _resultsPanel.Visible = false;
             RenderFavoritesCurrentMode();
             detailPanelOpen = true;
             detailPanelWidth = FixedRightPanelWidth;
+            ShowExclusiveRightPanelContent(_favoritesPanel);
             EnsureRightPanelVisible();
         }
 
@@ -303,6 +298,18 @@ public partial class Form1
         ApplyTopBarButtonActiveStyle(_resultsTabButton, _rightPanelContentMode == RightPanelContentMode.Results);
         ApplyTopBarButtonActiveStyle(_highwayFavoritesTabButton, _rightPanelContentMode == RightPanelContentMode.HighwayFavorites);
         ApplyTopBarButtonActiveStyle(_coordinateFavoritesTabButton, _rightPanelContentMode == RightPanelContentMode.CoordinateFavorites);
+    }
+
+    private void ShowExclusiveRightPanelContent(Control content)
+    {
+        if (highwaylistContainer.Panel2.Controls.Count == 1 && ReferenceEquals(highwaylistContainer.Panel2.Controls[0], content))
+        {
+            return;
+        }
+
+        highwaylistContainer.Panel2.Controls.Clear();
+        content.Dock = DockStyle.Fill;
+        highwaylistContainer.Panel2.Controls.Add(content);
     }
 
     private static void ApplyTopBarButtonActiveStyle(Button button, bool isActive)
