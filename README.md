@@ -108,6 +108,7 @@ TrafficSolution/
 | UC-CMN-001 | 앱을 실행하고 지도를 기다린다 | WebView2 지도를 로드하고 상태바에 준비 상태를 표시한다 | 상태바에 `지도가 준비되었습니다.`가 표시된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/Program.cs` |
 | UC-MODE-001 | 지도 모드를 `주변 고속도로 선택 모드`로 변경한다 | 마우스 커서를 조회 모드로 바꾸고 클릭 조회를 활성화한다 | 지도 클릭 시 좌표 조회 이벤트가 전달된다 | `TrafficForm/UI/Form1.cs` |
 | UC-MODE-002 | 우측 패널 모드를 `혼잡도/CCTV`로 전환한다 | 우측 패널 모드만 변경하고, 기존에 생성된 하이라이트/마커를 초기화한다. 카드/마커 재생성은 이후 조회/선택 동작에서 수행된다 | 모드 전환 직후 이전 상태의 하이라이트/마커가 제거된다 | `TrafficForm/UI/Form1.Cctv.cs` |
+| UC-RSN-001 | 도로명을 입력해 현재 모드의 조회를 실행한다 | 지도 위 검색 스트립에서 도로명을 해석하고, 현재 선택된 모드에 맞는 기존 혼잡도/CCTV 흐름으로 전달한다 | 검색 결과가 별도 모드 없이 기존 우측 패널 흐름에 표시된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/Form1.Cctv.cs`, `TrafficForm/App/RoadNameSearchService.cs`, `TrafficForm/Adapter/RoadNameSearchAdapter.cs`, `TrafficForm/Adapter/OpenStreetDbRepository.cs` |
 | UC-TRF-001 | 지도에서 좌표를 클릭해 혼잡도를 조회한다 | 인접 고속도로를 찾고, bounds 내 VDS 혼잡도를 수집해 카드/마커를 생성한다 | 우측 카드와 지도 마커/구간이 함께 표시된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/App/RequestTrafficByPosService.cs`, `TrafficForm/Adapter/OpenStreetDbRepository.cs`, `TrafficForm/Adapter/PublicTrafficApiAdapter.cs` |
 | UC-TRF-002 | 지도의 VDS 마커를 클릭한다 | 해당 카드로 스크롤하고 하이라이트를 동기화한다 | 지도 선택과 우측 카드 선택 상태가 일치한다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/UI/HighwayListControl.cs` |
 | UC-TRF-003 | 조회된 도로 구간 혼잡도를 확인한다 | VDS 책임 구간을 혼잡도 레벨 색상으로 지도에 그린다 | 구간 색이 레벨(원활/보통/혼잡/정체)에 맞게 표시된다 | `TrafficForm/UI/Form1.cs`, `TrafficForm/Domain/TrafficLevelPolicy.cs`, `TrafficForm/Adapter/VdsRepository.cs` |
