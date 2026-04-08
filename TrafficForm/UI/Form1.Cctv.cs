@@ -151,6 +151,8 @@ namespace TrafficForm
                 ? "좌표 선택 시 CCTV 마커/카드를 표시합니다."
                 : "좌표 선택 시 혼잡도(VDS) 목록을 표시합니다.";
 
+            UpdateRoadNameSearchHint();
+
             if (_rightPanelHeaderPanel.IsHandleCreated)
             {
                 UpdateLeftPanelModeLayout();

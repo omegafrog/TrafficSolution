@@ -28,8 +28,10 @@ namespace TrafficForm
             services.AddTransient<Form1>();
             services.AddSingleton<RequestTrafficByPosService>();
             services.AddSingleton<RequestCctvByPosService>();
+            services.AddSingleton<RoadNameSearchService>();
             services.AddSingleton<FavoriteService>();
             services.AddSingleton<IOpenStreetQueryPort, OpenStreetQueryAdapter>();
+            services.AddSingleton<IRoadNameSearchPort, RoadNameSearchAdapter>();
             services.AddSingleton<VdsTrafficSnapshotStore>();
             services.AddSingleton<IVdsTrafficSnapshotSourcePort, ItsVdsTrafficSnapshotSourceAdapter>();
             services.AddSingleton<VdsTrafficSnapshotRefresher>();
